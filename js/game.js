@@ -7,9 +7,9 @@ var C = {
     width: 1280,
     height: 920,
     assets: {
-      "stars": "stars1.png",
-      "west": "west2.png",
-      "sunset": "sunset3.png"
+      "stars": "assets/stars1.png",
+      "west": "assets/west2.png",
+      "sunset": "assets/sunset3.png"
     }
   }
 }
@@ -29,22 +29,41 @@ class Boot {
 
 class Load {
   preload() {
-    Object.keys(C.backgrounds.assets).forEach(function(assetName) {
-      game.load.image(assetName, C.background.assets[assetName]);
+    Object.keys(C.background.assets).forEach(function(assetName) {
+      game.load.image(assetName, C.background.assets[assetName], C.background.width, C.background.height);
     });
   }
-  load() {
-    game.state.start('MainMenu');
+  create() {
+    game.state.start('Play');
   }
 }
 
 class MainMenu {
+  create() {
+    game.state.start('Play');
+  }
+}
 
-
+class Play {
+  preload() {
+    game.bg = new Background();
+  }
+  create() {
+    console.log("Did it!")
+  }
+}
+function Background() {
+  this.changeBackground = function() {
+      var keys = Object.keys(C.background.assets)
+      return game.add.tileSprite(0,0,C.background.width,C.background.height, keys[ keys.length * Math.random() << 0]);
+  };
+  this.sprite = this.changeBackground();
 }
 
 
+var game = new Phaser.Game(C.game.width, C.game.height);
 game.state.add('Boot',Boot);
 game.state.add('Load',Load);
 game.state.add('MainMenu',MainMenu);
-var game = new Phaser.Game(C.game.width, C.game.height);
+game.state.add('Play',Play);
+game.state.start('Boot');
