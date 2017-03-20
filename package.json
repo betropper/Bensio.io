@@ -1,0 +1,19 @@
+{
+  "name": "bens2io",
+  "version": "1.0.0",
+  "description": "A test of using socket.io to create a physics-based multiplayer game.",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/betropper/bensio.io.git"
+  },
+  "author": "Benjamin M",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/betropper/bensio.io/issues"
+  },
+  "homepage": "https://github.com/betropper/bensio.io#readme"
+}
