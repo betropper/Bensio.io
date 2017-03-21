@@ -8,7 +8,7 @@ app.get('/',function(req, res) {
 });
 
 app.use('/',express.static(__dirname + '/'));
-http.listen(8080);
+http.listen(8061);
 
 //Server stuff.
 
@@ -46,4 +46,4 @@ var changeRound = function() {
   });
 }
 
-setInterval(changeRound, 1000);
+setInterval(changeRound, 5000);

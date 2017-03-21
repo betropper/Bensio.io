@@ -15,5 +15,8 @@
   "bugs": {
     "url": "https://github.com/betropper/bensio.io/issues"
   },
-  "homepage": "https://github.com/betropper/bensio.io#readme"
+  "homepage": "https://github.com/betropper/bensio.io#readme",
+  "devDependencies": {
+    "phaser-input": "^1.2.6"
+  }
 }
