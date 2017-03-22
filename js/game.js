@@ -1,7 +1,9 @@
 var C = {
   game: {
-    width: window.innerWidth * window.devicePixelRatio,
-    height: window.innerHeight * window.devicePixelRatio,
+    //width: window.innerWidth * window.devicePixelRatio,
+    //height: window.innerHeight * window.devicePixelRatio,
+    width: 1280,
+    height: 920,
     number: ''
   },
   text: {
@@ -12,17 +14,17 @@ var C = {
     },
     inputStyle: {
       fill: "#000",
-      font: '30px Montserrat',
+      font: '24px Helvetica',
       fontWeight: 'bold',
-      width: 500,
-      height: 40,
+      width: 260,
+      height: 24,
       backgroundColor: '#f44e42',
       borderWidth: 4,
       borderColor: '#000',
-      padding: 12,
+      padding: 20,
       borderRadius: 20,
       max: 20,
-      placeHolder: 'Anonymous'
+      placeHolder: 'Anonymous',
     }
   },
   background: {
@@ -35,7 +37,18 @@ var C = {
     }
   },
   player: {
-    name: 'No One'
+    name: 'Anonymous'
+  },
+  block: {
+    width: 72,
+    height: 72,
+    assets: {
+      "red": "assets/redsquare.png",
+      "blue": "assets/bluesquare.png",
+      "green": "assets/greensquare.png",
+      "orange": "assets/orangesquare.png"
+    },
+    names: ["red","blue","green","orange"]
   }
 }
 
@@ -69,15 +82,53 @@ class Load {
     Object.keys(C.background.assets).forEach(function(assetName) {
       game.load.image(assetName, C.background.assets[assetName], C.background.width, C.background.height);
     });
+    Object.keys(C.block.assets).forEach(function(assetName) {
+      game.load.image(assetName, C.block.assets[assetName], C.block.width, C.block.height);
+    });
   }
   create() {
+    game.blurX = game.add.filter('BlurX');
+    game.blurY = game.add.filter('BlurY');
+    game.blurX.blur = 10;
+    game.blurY.blur = 10;
+    game.blurTweens = [];
+    game.blurTweens[0] = game.add.tween(game.blurX).to({blur: 10}, 1000, Phaser.Easing.Linear.None);
+    game.blurTweens[1] = game.add.tween(game.blurY).to({blur: 10}, 1000, Phaser.Easing.Linear.None);
+    game.clearTweens = [];
+    game.clearTweens[0] = game.add.tween(game.blurX).to({blur: 0}, 1000, Phaser.Easing.Linear.None);
+    game.clearTweens[1] = game.add.tween(game.blurY).to({blur: 0}, 1000, Phaser.Easing.Linear.None);
+    game.blurrify = function() {
+      game.blurTweens.forEach(function(tween) {
+        tween.start();
+      });
+    }
+    game.clear = function() {
+      game.clearTweens.forEach(function(tween) {
+        tween.start();
+      });
+    }
     game.socket = io();
     game.socket.on('firstMessage',function(data) {
       game.bg = new Background(data.bg);
-      game.bg.blurrify();
       C.game.number = data.number;
       game.clickCount = game.add.text(game.world.centerX,game.world.centerY,C.game.number,C.text.style);
       game.clickCount.anchor.setTo(.5);
+      game.stage.disableVisibilityChange = true; 
+      // Add physics
+      game.physics.startSystem(Phaser.Physics.P2JS);
+      game.physics.p2.setImpactEvents(true);
+      C.block.blockCollisionGroup = game.physics.p2.createCollisionGroup(); 
+      game.physics.p2.updateBoundsCollisionGroup();
+      game.physics.p2.damping = 0;
+      game.physics.p2.friction = 0;
+      game.physics.p2.angularDamping = 0;
+      game.physics.p2.restitution = 1;
+      //create blocks
+      
+      game.blocks = [];
+      for (var i = 0; i < C.block.names.length; i++) {
+        game.blocks[i] = new Block(data.positions[i].x,data.positions[i].y,C.block.names[i]);
+      }
       game.socket.on('numberChanged',function(number) {
         C.game.number = number;
         game.clickCount.text = number.toString();
@@ -97,8 +148,10 @@ class MainMenu {
     });
   }
   create() {
+    //game.bg.sprite.filters = [];
     game.bensioTitle = game.add.text(game.world.centerX,game.world.centerY - 200,"bensio",C.text.style);
-    var input = game.add.inputField(game.world.centerX - C.text.inputStyle.width/2 , game.world.centerY - C.text.inputStyle.height/2, C.text.inputStyle);
+    game.bensioTitle.anchor.setTo(.5);
+    var input = game.add.inputField(game.world.centerX - C.text.inputStyle.width/2 - C.text.inputStyle.padding, game.world.centerY - C.text.inputStyle.height/2 - C.text.inputStyle.padding, C.text.inputStyle);
     input.blockInput = false;
     game.world.bringToTop(input);
     console.log(input);
@@ -114,6 +167,7 @@ class MainMenu {
 class Play {
   create() {
     console.log("Did it!")
+    game.clear();
     game.clickCount.revive();
     //Deal with socket messages.
     this.input.onTap.add(function() {
@@ -121,6 +175,7 @@ class Play {
     },this);
   }
 }
+
 function Background(currentkey) {
   this.randomBackground = function() {
       var keys = Object.keys(C.background.assets)
@@ -132,15 +187,11 @@ function Background(currentkey) {
     } else {
       this.sprite.loadTexture(backgroundKey);
     }
-  game.world.sendToBack(this.sprite);
+    game.world.sendToBack(this.sprite);
   }
 
-  this.blurX = game.add.filter('BlurX');
-  this.blurY = game.add.filter('BlurY');
   this.blurrify = function() {
-    this.blurX.blur = 100;
-    this.blurY.blur = 1;
-    this.sprite.filters = [this.blurX, this.blurY];
+    
   }
   if (currentkey) {
     this.sprite = game.add.sprite(0,0,currentkey);
@@ -155,6 +206,18 @@ function Background(currentkey) {
   this.sprite.x = game.world.centerX;
   this.sprite.y = game.world.centerY;
   game.world.sendToBack(this.sprite);
+
+  this.sprite.filters = [game.blurX, game.blurY];
+
+}
+
+function Block(x,y,color) {
+  this.sprite = game.add.sprite(x, y, color);
+  game.physics.p2.enable(this.sprite);
+  this.sprite.enableBody = true;
+  this.sprite.physicsBodyType = Phaser.Physics.P2JS;
+  this.sprite.filters = [game.blurX, game.blurY];
+  console.log(this.sprite);
 }
 
 

@@ -16,7 +16,13 @@ var S = {
   testnumber: 0,
   online: 0,
   bgs: ['stars','west','sunset'],
-  currentbg: 'stars'
+  currentbg: 'stars',
+  positions: [
+    {x: 200, y: 150},
+    {x: 200, y: 744},
+    {x: 1008, y: 150},
+    {x: 1008, y: 744}
+  ]
 }
 
 var io = require('socket.io')(http,{});
@@ -27,7 +33,8 @@ io.sockets.on('connection', function(socket) {
   socket.emit('firstMessage', {
     number: S.testnumber,
     online: S.online,
-    bg: S.currentbg
+    bg: S.currentbg,
+    positions: S.positions
   });
   socket.on('bet', function(data) {
     console.log(data.player + ' has placed a bet.');
