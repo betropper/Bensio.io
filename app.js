@@ -6,23 +6,29 @@ var http = require('http').Server(app);
 app.get('/',function(req, res) {
   res.sendFile(__dirname + '/index.html');
 });
-
 app.use('/',express.static(__dirname + '/'));
 http.listen(8061);
 
-//Server stuff.
+function getRandomInt(min, max) {
+  min = Math.ceil(min);
+  max = Math.floor(max);
+  return Math.floor(Math.random() * (max - min)) + min;
+}
 
+//Server stuff.
 var S = {
   testnumber: 0,
   online: 0,
   bgs: ['stars','west','sunset'],
   currentbg: 'stars',
-  positions: [
-    {x: 200, y: 150},
-    {x: 200, y: 744},
-    {x: 1008, y: 150},
-    {x: 1008, y: 744}
-  ]
+  block: {
+    positions: [
+      {x: 200, y: 150, vx: getRandomInt(-1000,1000), vy: getRandomInt(-1000,1000)},
+      {x: 200, y: 744, vx: getRandomInt(-1000,1000), vy: getRandomInt(-1000,1000)},
+      {x: 1008, y: 150, vx: getRandomInt(-1000,1000), vy: getRandomInt(-1000,1000)},
+      {x: 1008, y: 744, vx: getRandomInt(-1000,1000), vy: getRandomInt(-1000,1000)}
+    ]
+  }
 }
 
 var io = require('socket.io')(http,{});
@@ -34,7 +40,7 @@ io.sockets.on('connection', function(socket) {
     number: S.testnumber,
     online: S.online,
     bg: S.currentbg,
-    positions: S.positions
+    positions: S.block.positions
   });
   socket.on('bet', function(data) {
     console.log(data.player + ' has placed a bet.');
@@ -49,7 +55,8 @@ io.sockets.on('connection', function(socket) {
 var changeRound = function() {
   var newbg = S.bgs[Math.floor(Math.random() * S.bgs.length)];
   io.emit('newRound',{
-    bg: newbg
+    bg: newbg,
+    positions: S.block.positions
   });
 }
 

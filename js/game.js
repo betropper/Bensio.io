@@ -42,6 +42,7 @@ var C = {
   block: {
     width: 72,
     height: 72,
+    velocity: 30,
     assets: {
       "red": "assets/redsquare.png",
       "blue": "assets/bluesquare.png",
@@ -51,6 +52,47 @@ var C = {
     names: ["red","blue","green","orange"]
   }
 }
+
+function Block(game,x,y,color,frame) {
+  //this.sprite = game.blocks.create(x, y, color);
+  console.log(x,y,color,frame);
+  Phaser.Sprite.call(this, game, x, y, color);
+  this.anchor.setTo(.5);
+  //game.physics.p2.enable(this);
+  //this.body.setCollisionGroup(C.block.blockCollisionGroup);
+  //this.body.collideWorldBounds = true;
+  //this.body.friction = 0;
+  //this.body.restitution = 1;
+  //this.body.velocity.x = velocityX;
+  //this.body.velocity.y = velocityY;
+  this.filters = [game.blurX, game.blurY];
+  this.constrainVelocity = function(maxVelocity) {
+    //constraints the block's velocity to a specific number
+    var body = this.body;
+    var angle, currVelocitySqr, vx, vy;
+
+    vx = body.data.velocity[0];
+    vy = body.data.velocity[1];
+    currVelocitySqr = vx * vx + vy * vy;
+    
+    angle = Math.atan2(vy, vx);
+      
+    vx = Math.cos(angle) * maxVelocity;
+    vy = Math.sin(angle) * maxVelocity;
+      
+    body.data.velocity[0] = vx;
+    body.data.velocity[1] = vy;
+  };
+  console.log(this);
+  //game.stage.addChild(this);
+  game.add.existing(this)
+};
+
+Block.prototype = Object.create(Phaser.Sprite.prototype);
+Block.prototype.constructor = Block;
+Block.prototype.update = function() {
+    this.constrainVelocity(C.block.velocity);
+};
 
 class Boot {
   init() {
@@ -87,6 +129,7 @@ class Load {
     });
   }
   create() {
+    //Create the blurry background at the start of the game.
     game.blurX = game.add.filter('BlurX');
     game.blurY = game.add.filter('BlurY');
     game.blurX.blur = 10;
@@ -115,7 +158,9 @@ class Load {
       game.clickCount.anchor.setTo(.5);
       game.stage.disableVisibilityChange = true; 
       // Add physics
+      game.world.setBounds(0, 0, C.game.width, C.game.height);
       game.physics.startSystem(Phaser.Physics.P2JS);
+      //game.physics.p2.setBoundsToWorld(true, true, true, true, true);
       game.physics.p2.setImpactEvents(true);
       C.block.blockCollisionGroup = game.physics.p2.createCollisionGroup(); 
       game.physics.p2.updateBoundsCollisionGroup();
@@ -124,15 +169,11 @@ class Load {
       game.physics.p2.angularDamping = 0;
       game.physics.p2.restitution = 1;
       //create blocks
-      
-      game.blocks = [];
-      for (var i = 0; i < C.block.names.length; i++) {
-        game.blocks[i] = new Block(data.positions[i].x,data.positions[i].y,C.block.names[i]);
-      }
-      game.socket.on('numberChanged',function(number) {
-        C.game.number = number;
-        game.clickCount.text = number.toString();
-      });
+      game.blocks = game.add.group();
+      game.blocks.classType = Block;
+      game.blocks.enableBody = true;
+      game.blocks.physicsBodyType = Phaser.Physics.P2JS;
+      game.blocks.positions = data.positions;
       game.clickCount.kill();
       game.loadingText.destroy();
       game.state.start('MainMenu',false);
@@ -146,9 +187,21 @@ class MainMenu {
       console.log('Round over.');
       game.bg.changeBackground(data.bg);
     });
+    game.socket.on('numberChanged',function(number) {
+      C.game.number = number;
+      game.clickCount.text = number.toString();
+    });
   }
   create() {
     //game.bg.sprite.filters = [];
+    for (var i = 0; i < C.block.names.length; i++) {
+      var lastBlock = game.blocks.create(game.blocks.positions[i].x,game.blocks.positions[i].y,C.block.names[i]);
+      lastBlock.body.velocity.x = game.blocks.positions[i].vx;
+      lastBlock.body.velocity.y = game.blocks.positions[i].vy;
+      lastBlock.body.angularDamping = 0;
+      lastBlock.body.damping = 0;
+      lastBlock.body.mass = 0.1;
+    }
     game.bensioTitle = game.add.text(game.world.centerX,game.world.centerY - 200,"bensio",C.text.style);
     game.bensioTitle.anchor.setTo(.5);
     var input = game.add.inputField(game.world.centerX - C.text.inputStyle.width/2 - C.text.inputStyle.padding, game.world.centerY - C.text.inputStyle.height/2 - C.text.inputStyle.padding, C.text.inputStyle);
@@ -166,6 +219,9 @@ class MainMenu {
 
 class Play {
   create() {
+    game.blocks.forEach(function(block) {
+      block.revive();
+    });
     console.log("Did it!")
     game.clear();
     game.clickCount.revive();
@@ -211,14 +267,6 @@ function Background(currentkey) {
 
 }
 
-function Block(x,y,color) {
-  this.sprite = game.add.sprite(x, y, color);
-  game.physics.p2.enable(this.sprite);
-  this.sprite.enableBody = true;
-  this.sprite.physicsBodyType = Phaser.Physics.P2JS;
-  this.sprite.filters = [game.blurX, game.blurY];
-  console.log(this.sprite);
-}
 
 
 var game = new Phaser.Game(C.game.width, C.game.height);
