@@ -18,5 +18,8 @@
   "homepage": "https://github.com/betropper/bensio.io#readme",
   "devDependencies": {
     "phaser-input": "^1.2.6"
+  },
+  "dependencies": {
+    "planck-js": "~0.1.29"
   }
 }
