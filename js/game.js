@@ -66,7 +66,7 @@ function Block(game,x,y,color,frame) {
   //this.body.velocity.x = velocityX;
   //this.body.velocity.y = velocityY;
   this.filters = [game.blurX, game.blurY];
-  this.constrainVelocity = function(maxVelocity) {
+  /*this.constrainVelocity = function(maxVelocity) {
     //constraints the block's velocity to a specific number
     var body = this.body;
     var angle, currVelocitySqr, vx, vy;
@@ -82,7 +82,17 @@ function Block(game,x,y,color,frame) {
       
     body.data.velocity[0] = vx;
     body.data.velocity[1] = vy;
-  };
+  };*/
+  this.syncBlock = function(x,y,angle) {
+    this.x = x + C.game.width/2;
+    this.y = y + C.game.height/2;
+    /*this.body.x = x;
+    this.body.y = y;*/
+    this.angle = angle * (180/Math.PI);
+  }
+  this.lose = function(condition) {
+    this.dying = true;
+  }
   console.log(this);
   //game.stage.addChild(this);
   game.add.existing(this)
@@ -91,7 +101,16 @@ function Block(game,x,y,color,frame) {
 Block.prototype = Object.create(Phaser.Sprite.prototype);
 Block.prototype.constructor = Block;
 Block.prototype.update = function() {
-    this.constrainVelocity(C.block.velocity);
+    //this.constrainVelocity(C.block.velocity);
+    if (this.dying) {
+      this.angle += 10;
+      this.alpha -= .05;
+      if (this.alpha <= 0) {
+        this.kill();
+        this.dying = false;
+        this.alpha = 1;
+      }
+    }
 };
 
 class Boot {
@@ -158,25 +177,39 @@ class Load {
       game.clickCount.anchor.setTo(.5);
       game.stage.disableVisibilityChange = true; 
       // Add physics
+      /*
       game.world.setBounds(0, 0, C.game.width, C.game.height);
       game.physics.startSystem(Phaser.Physics.P2JS);
-      //game.physics.p2.setBoundsToWorld(true, true, true, true, true);
+      game.physics.p2.setBoundsToWorld(true, true, true, true, true);
       game.physics.p2.setImpactEvents(true);
       C.block.blockCollisionGroup = game.physics.p2.createCollisionGroup(); 
       game.physics.p2.updateBoundsCollisionGroup();
       game.physics.p2.damping = 0;
       game.physics.p2.friction = 0;
       game.physics.p2.angularDamping = 0;
-      game.physics.p2.restitution = 1;
+      game.physics.p2.restitution = 1;*/
       //create blocks
-      game.blocks = game.add.group();
-      game.blocks.classType = Block;
-      game.blocks.enableBody = true;
-      game.blocks.physicsBodyType = Phaser.Physics.P2JS;
+
+      if (!game.blocks) {
+        game.blocks = game.add.group();
+        game.blocks.classType = Block;
+      } else {
+        game.blocks.forEach(function(block) {
+         if (!block.alive) {
+          block.revive();
+         }
+        });
+      }
+      //game.blocks.enableBody = true;
+      //game.blocks.physicsBodyType = Phaser.Physics.P2JS;
       game.blocks.positions = data.positions;
+      game.blocks.velocities = data.velocities;
+      game.blocks.deadBlocks = data.deadBlocks;
       game.clickCount.kill();
       game.loadingText.destroy();
-      game.state.start('MainMenu',false);
+      if (game.state.current == "Load") {
+        game.state.start('MainMenu',false);
+      }
     });
   }
 }
@@ -185,6 +218,12 @@ class MainMenu {
   preload() {
     game.socket.on('newRound', function(data) {
       console.log('Round over.');
+      game.blocks.forEach(function(block) {
+        if (!block.alive) {
+          block.revive();
+          game.world.bringToTop(block);
+        }
+      });
       game.bg.changeBackground(data.bg);
     });
     game.socket.on('numberChanged',function(number) {
@@ -194,14 +233,41 @@ class MainMenu {
   }
   create() {
     //game.bg.sprite.filters = [];
-    for (var i = 0; i < C.block.names.length; i++) {
-      var lastBlock = game.blocks.create(game.blocks.positions[i].x,game.blocks.positions[i].y,C.block.names[i]);
-      lastBlock.body.velocity.x = game.blocks.positions[i].vx;
-      lastBlock.body.velocity.y = game.blocks.positions[i].vy;
-      lastBlock.body.angularDamping = 0;
-      lastBlock.body.damping = 0;
-      lastBlock.body.mass = 0.1;
+      if (game.blocks.length == 0) {
+      for (var i = 0; i < C.block.names.length; i++) {
+          var index = game.blocks.deadBlocks.indexOf(i);
+          var lastBlock = game.blocks.create(game.blocks.positions[i][0],game.blocks.positions[i][1],C.block.names[i]);
+          if (index > 0) {
+            lastBlock.kill();
+          }
+          //lastBlock.body.velocity.x = game.blocks.velocities[i][0];
+          //lastBlock.body.velocity.y = game.blocks.velocities[i][1];
+          //Commented out to test. Uncomment later.
+          /*
+          lastBlock.body.angularDamping = 0;
+          lastBlock.body.damping = 0;
+          lastBlock.body.mass = 0.1;*/
+      }
     }
+    game.socket.on('killBlock',function(block) {
+      var dyingBlock = game.blocks[block.number];
+      dyingBlock.kill();
+    });
+    game.socket.on('worldTick',function(data) {
+      for (var i = 0; i < game.blocks.length; i++) {
+        //Include indexOf for IE later.
+        if (data.deadBlocks && data.deadBlocks.indexOf(i) > -1 && game.blocks.children[i].alive) {
+          game.blocks.children[i].lose();
+          game.blocks.deadBlocks = data.deadBlocks;
+        } else if (game.blocks.children[i].alive) {
+          game.blocks.children[i].syncBlock(data.positions[i][0], data.positions[i][1],data.angles[i]);
+        }
+        //game.blocks.children[i].x = data.positions[i][0];
+        //game.blocks.children[i].y = data.positions[i][1];
+        //game.blocks.children[i].body.velocity.x = data.velocities[i][0];
+        //game.blocks.children[i].body.velocity.y = data.velocities[i][1];
+      }
+    });
     game.bensioTitle = game.add.text(game.world.centerX,game.world.centerY - 200,"bensio",C.text.style);
     game.bensioTitle.anchor.setTo(.5);
     var input = game.add.inputField(game.world.centerX - C.text.inputStyle.width/2 - C.text.inputStyle.padding, game.world.centerY - C.text.inputStyle.height/2 - C.text.inputStyle.padding, C.text.inputStyle);
@@ -211,6 +277,7 @@ class MainMenu {
     var enter = game.input.keyboard.addKey(Phaser.Keyboard.ENTER);
     enter.onDown.add(function() {
       C.player.name = input.value || 'Anonymous';
+      game.socket.emit('nameRegistered', C.player.name);
       input.destroy();
       game.state.start('Play',false);
     });

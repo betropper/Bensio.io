@@ -17,44 +17,56 @@ function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min)) + min;
 }
 
+var io = require('socket.io')(http,{});
+
 //Server stuff.
 var S = {
   gameworld: {
     SCALE: 30,
-    fps: 30
+    fps: 30,
+    width: 1280,
+    height: 920
   },
   testnumber: 0,
-  online: 0,
+  roundChanging: false,
+  online: {},
   bgs: ['stars','west','sunset'],
   currentbg: 'stars',
   block: {
     width: 72,
     height: 72,
+    velocityConstant: 500,
     positions: [
-      {x: 200, y: 150, vx: getRandomInt(-1000,1000), vy: getRandomInt(-1000,1000)},
-      {x: 200, y: 744, vx: getRandomInt(-1000,1000), vy: getRandomInt(-1000,1000)},
-      {x: 1008, y: 150, vx: getRandomInt(-1000,1000), vy: getRandomInt(-1000,1000)},
-      {x: 1008, y: 744, vx: getRandomInt(-1000,1000), vy: getRandomInt(-1000,1000)}
-    ]
+      {x: 200 - 1280/2, y: 150 - 920/2, vx: getRandomInt(-60,60), vy: getRandomInt(-60,60)},
+      {x: 200 - 1280/2, y: 744 - 920/2, vx: getRandomInt(-60,60), vy: getRandomInt(-60,60)},
+      {x: 1008 - 1280/2,y: 150 - 920/2, vx: getRandomInt(-60,60), vy: getRandomInt(-60,60)},
+      {x: 1008 - 1280/2, y: 744 - 920/2, vx: getRandomInt(-60,60), vy: getRandomInt(-60,60)}
+    ],
+    names: ["red","blue","green","orange"]
   }
 }
 function Block(count) {
+    this.count = count;
     this.body = new p2.Body({
       mass: 0.1,
-      position: [S.block.positions[count].x, S.block.positions[count].y]
+      position: [S.block.positions[count].x, S.block.positions[count].y],
+      velocity: [getRandomInt(-60,60), getRandomInt(-60,60)]
     });
     var boxShape = new p2.Box({width: S.block.width, height: S.block.height});
     this.body.addShape(boxShape); 
-
     this.body.damping = 0;
     world.addBody(this.body);
+    this.body.parent = this;
+    this.blockNumber = count;
+    this.hp = 20;
+    this.name = S.block.names[count];
     this.constrainVelocity = function(maxVelocity) {
       //constraints the block's velocity to a specific number
       var body = this.body;
       var angle, currVelocitySqr, vx, vy;
 
-      vx = body.data.velocity[0];
-      vy = body.data.velocity[1];
+      vx = body.velocity[0];
+      vy = body.velocity[1];
       currVelocitySqr = vx * vx + vy * vy;
       
       angle = Math.atan2(vy, vx);
@@ -62,8 +74,20 @@ function Block(count) {
       vx = Math.cos(angle) * maxVelocity;
       vy = Math.sin(angle) * maxVelocity;
         
-      body.data.velocity[0] = vx;
-      body.data.velocity[1] = vy;
+      body.velocity[0] = vx;
+      body.velocity[1] = vy;
+    };
+    this.die = function(deathCase) {
+      world.removeBodies.push(this.body);
+      world.deadBlocks.push(this.blockNumber);
+    };
+    this.revive = function(x,y) {
+      var index = world.deadBlocks.indexOf(this.blockNumber);
+      world.deadBlocks.splice(index,1);
+      this.hp = 20;
+      world.addBody(this.body);
+      this.body.position = [S.block.positions[this.count].x, S.block.positions[this.count].y];
+      this.body.velocity = [getRandomInt(-60,60), getRandomInt(-60,60)]; 
     };
 }
 
@@ -73,42 +97,154 @@ var world = new p2.World({
 });
 
 world.blocks = [];
+world.deadBlocks = [];
+world.removeBodies = [];
 for (i = 0; i < 4; i++) {
   world.blocks[i] = new Block(i);
-  console.log(world.blocks[i].body);
-  console.log("---------------------");
   }
-world.on('postStep', function() {
-  console.log('tick');
+world.blocks.positions = [];
+world.blocks.velocities = [];
+world.blocks.angles = [];
+
+//Create the world boundries
+
+var floor = new p2.Body({
+  position: [0,-S.gameworld.height/2]
+});
+floor.addShape(new p2.Plane());
+var ceiling = new p2.Body({
+  // radians
+  angle: Math.PI,
+  position: [0,S.gameworld.height/2]
+});
+ceiling.addShape(new p2.Plane());
+
+var right = new p2.Body({
+  angle: Math.PI / 2,
+  position: [S.gameworld.width/2,0]
+});
+right.addShape(new p2.Plane());
+
+var left = new p2.Body({
+  angle: (3 * Math.PI) / 2,
+  position: [-S.gameworld.width/2,0]
 });
 
-var io = require('socket.io')(http,{});
+left.addShape(new p2.Plane());
+world.addBody(left);
+world.addBody(right);
+world.addBody(floor);
+world.addBody(ceiling);
+
+var fixedTimeStep = 1 / 60; // seconds
+
+setInterval(function(){
+  // Move bodies forward in time
+  
+  world.step(fixedTimeStep);
+
+}, 1000*fixedTimeStep);
+
+//requestAnimationFrame(animate);
+
+
+world.on('postStep', function() {
+  for (var i = 0; i < world.removeBodies.length; i++) {
+    world.removeBody(world.removeBodies[i]);
+  }
+  world.removeBodies.length = 0;
+  world.blocks.forEach(function(block) {
+    if (block.hp > 0) {
+      //console.log(world.blocks[0].body.velocity[1]);
+      block.constrainVelocity(S.block.velocityConstant);
+      world.blocks.positions[block.count] = block.body.position;
+      world.blocks.velocities[block.count] = block.body.velocity;
+      world.blocks.angles[block.count] = block.body.angle;
+    }
+  });
+  //console.log(world.blocks[0].body.position[0],world.blocks[0].body.velocity[0]);
+  if (world.deadBlocks.length >= world.blocks.length && !S.roundChanging) {
+    setTimeout(changeRound, 3000);
+    S.roundChanging = true;
+  } else {
+    io.emit('worldTick',{
+      positions: world.blocks.positions,
+      angles: world.blocks.angles,
+      velocities: world.blocks.velocities,
+      deadBlocks: world.deadBlocks
+    });
+  }
+});
+
+world.on('beginContact', function(evt) {
+  var bodyA = evt.bodyA;
+  var bodyB = evt.bodyB;
+  /*if (bodyA.parent) {
+    console.log(bodyA.parent.name, bodyA.parent.hp);
+  }
+  if (bodyB.parent) {
+    console.log(bodyB.parent.name,bodyB.parent.hp);
+  }*/
+  if (bodyA.parent) {
+    bodyA.parent.hp -= 1;
+    if (bodyA.parent.hp <= 0) {
+      bodyA.parent.die();
+    }
+  }
+  if (bodyB.parent) {
+    bodyB.parent.hp -= 1;
+    if (bodyB.parent.hp <= 0) {
+      bodyB.parent.die();
+    }
+  }
+});
+
 
 io.sockets.on('connection', function(socket) {
   console.log('A player has connected.');
-  S.online++
+  //console.log(world.blocks.positions);
   socket.emit('firstMessage', {
     number: S.testnumber,
     online: S.online,
     bg: S.currentbg,
-    positions: S.block.positions
+    positions: world.blocks.positions,
+    angles: world.blocks.angles,
+    velocities: world.blocks.velocities,
+    deadBlocks: world.deadBlocks
   });
   socket.on('bet', function(data) {
     console.log(data.player + ' has placed a bet.');
     S.testnumber++
     io.sockets.emit('numberChanged', S.testnumber);
   });
-  socket.on('disconnect', function() {
-    S.online--
+  socket.on('nameRegistered', function(name) {
+    var namenum = 1;
+    while (S.online[name]) {
+      name = name + namenum.toString();
+      namenum++
+    }
+      S.online[name] = {
+        buxio: 0
+      };
+    console.log(name + " has registered their name.",S.online);
+  });
+  socket.on('disconnect', function(ws) {
+    //S.online.splice();
+    console.log(ws, ' has left the game.');
   });
 });
 
 var changeRound = function() {
+  S.roundChanging = false;
   var newbg = S.bgs[Math.floor(Math.random() * S.bgs.length)];
-  io.emit('newRound',{
+  world.blocks.forEach(function(block) {
+    block.revive();
+ });
+   io.emit('newRound',{
     bg: newbg,
-    positions: S.block.positions
+    positions: world.blocks.positions,
+    angles: world.blocks.angles,
+    velocities: world.blocks.velocities
   });
 }
 
-setInterval(changeRound, 5000);
