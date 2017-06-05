@@ -146,15 +146,10 @@ function ObstacleSpawner(game,x,y,type,frame) {
   }
   this.events.onDragStop.add(this.checkOutOfBounds,this);
   game.add.existing(this);
-  this.width = C.obstacle.width;
-  this.height = C.obstacle.height;
   if (type == "saw") {
-    this.sawBlade = this.addChild(game.make.sprite(x,y,"sawblade"));
-    this.sawBlade.width = C.obstacle.width;
-    this.sawBlade.height = C.obstacle.height;
-    this.sawBlade.anchor.setTo(.5);
-    this.sawBlade.filters = [game.blurX, game.blurY];
-  };
+    this.obstacleType = "saw";
+    this.scale.setTo(.15);
+  }
 }
 
 ObstacleSpawner.prototype = Object.create(Phaser.Sprite.prototype);
@@ -167,15 +162,17 @@ function Obstacle(game,x,y,type,frame) {
   this.anchor.setTo(.5);
   this.filters = [game.blurX, game.blurY];
   game.add.existing(this);
-  this.width = C.obstacle.width;
-  this.height = C.obstacle.height;
   if (type == "saw") {
     this.obstacleType = "saw";
-    this.sawBlade = this.addChild(game.make.sprite(x,y,"sawblade"));
-    this.sawBlade.width = C.obstacle.width;
-    this.sawBlade.height = C.obstacle.height;
+    this.sawBlade = game.add.sprite(this.x,this.y,"sawblade");
+    game.add.existing(this.sawBlade);
     this.sawBlade.anchor.setTo(.5);
     this.sawBlade.filters = [game.blurX, game.blurY];
+    this.sawBlade.scale.setTo(.01);
+    this.sawBlade.x += 1;
+    this.sawBlade.y += 1;
+    this.scale.setTo(.15);
+    game.world.bringToTop(this);
   }
 }
 Obstacle.prototype = Object.create(Phaser.Sprite.prototype);
@@ -183,6 +180,9 @@ Obstacle.prototype.constructor = Obstacle;
 Obstacle.prototype.update = function() {
   if (this.obstacleType && this.obstacleType == "saw") {
     this.sawBlade.angle += 10;
+    if (this.sawBlade.scale.x < .15) {
+      this.sawBlade.scale.setTo(this.sawBlade.scale.x + .01);
+    }
   }
 };
 
