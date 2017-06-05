@@ -54,11 +54,13 @@ var C = {
   obstacle: {
     width: 72,
     height: 72,
-    offensive: [],
+    offensive: ["saw"],
     defensive: ["wall","freeze"],
     assets: {
       "wall": "assets/red-circle.png",
-      "freeze": "assets/blue-circle.png"
+      "freeze": "assets/blue-circle.png",
+      "saw": "assets/sawbody.jpg",
+      "sawblade": "assets/sawblade.jpg"
     },
   }
 }
@@ -144,10 +146,16 @@ function ObstacleSpawner(game,x,y,type,frame) {
   }
   this.events.onDragStop.add(this.checkOutOfBounds,this);
   game.add.existing(this);
+  if (type == "saw") {
+    this.sawBlade = this.addChild(game.make.sprite(x,y,"sawblade"));
+    this.sawBlade.anchor.setTo(.5);
+    this.sawBlade.filters = [game.blurX, game.blurY];
+  }
 };
 
 ObstacleSpawner.prototype = Object.create(Phaser.Sprite.prototype);
-ObstacleSpawner.prototype.constructor = Block;
+ObstacleSpawner.prototype.constructor = ObstacleSpawner;
+
 
 function Obstacle(game,x,y,type,frame) {
   console.log(x,y,type,frame);
@@ -155,9 +163,20 @@ function Obstacle(game,x,y,type,frame) {
   this.anchor.setTo(.5);
   this.filters = [game.blurX, game.blurY];
   game.add.existing(this);
+  if (type == "saw") {
+    this.obstacleType = "saw";
+    this.sawBlade = this.addChild(game.make.sprite(x,y,"sawblade"));
+    this.sawBlade.anchor.setTo(.5);
+    this.sawBlade.filters = [game.blurX, game.blurY];
+  }
 }
 Obstacle.prototype = Object.create(Phaser.Sprite.prototype);
-Obstacle.prototype.constructor = Block;
+Obstacle.prototype.constructor = Obstacle;
+Obstacle.prototype.update = function() {
+  if (this.obstacleType && this.obstacleType == "saw") {
+    this.sawBlade.angle += 10;
+  }
+};
 
 class Boot {
   init() {
