@@ -24,12 +24,14 @@ var S = {
   gameworld: {
     SCALE: 30,
     fps: 30,
-    width: 1280,
+    //width: 1280,
+    width: 1050,
     height: 920
   },
   testnumber: 0,
   roundChanging: false,
   online: {},
+  registeredNames: [],
   bgs: ['stars','west','sunset'],
   currentbg: 'stars',
   block: {
@@ -202,7 +204,7 @@ world.on('beginContact', function(evt) {
 
 io.sockets.on('connection', function(socket) {
   console.log('A player has connected.');
-  //console.log(world.blocks.positions);
+  console.log(socket.id);
   socket.emit('firstMessage', {
     number: S.testnumber,
     online: S.online,
@@ -219,18 +221,27 @@ io.sockets.on('connection', function(socket) {
   });
   socket.on('nameRegistered', function(name) {
     var namenum = 1;
-    while (S.online[name]) {
+    while (S.registeredNames.indexOf(name) > -1) {
       name = name + namenum.toString();
       namenum++
     }
-      S.online[name] = {
-        buxio: 0
-      };
-    console.log(name + " has registered their name.",S.online);
+    console.log(S.registeredNames);
+    S.registeredNames.push(name);
+    S.online[socket.id] = {
+      buxio: 0,
+      name: name
+    };
+    console.log(name + " has registered their name.");
+    console.log(S.online);
   });
-  socket.on('disconnect', function(ws) {
+  socket.on('disconnect', function(err) {
     //S.online.splice();
-    console.log(ws, ' has left the game.');
+    if (S.online[socket.id]) {
+      console.log(S.online[socket.id].name, 'has left the game.');
+      S.registeredNames.splice(S.online[socket.id].name);
+      delete S.online[socket.id];
+      console.log(S.online);
+    }
   });
 });
 

@@ -50,6 +50,16 @@ var C = {
       "orange": "assets/orangesquare.png"
     },
     names: ["red","blue","green","orange"]
+  },
+  obstacle: {
+    width: 72,
+    height: 72,
+    offensive: [],
+    defensive: ["wall","freeze"],
+    assets: {
+      "wall": "assets/red-circle.png",
+      "freeze": "assets/blue-circle.png"
+    },
   }
 }
 
@@ -113,6 +123,42 @@ Block.prototype.update = function() {
     }
 };
 
+function ObstacleSpawner(game,x,y,type,frame) {
+  console.log(x,y,type,frame);
+  Phaser.Sprite.call(this, game, x, y, type);
+  this.homeX = x;
+  this.homeY = y;
+  this.anchor.setTo(.5);
+  this.filters = [game.blurX, game.blurY];
+  this.inputEnabled = true;
+  this.input.enableDrag();
+  this.checkOutOfBounds = function() {
+    if (this.x > C.game.width - 115 || this.x < 115 || this.y < 0 || this.y > C.game.height) {
+      console.log("Failure.");
+    } else {
+      console.log("Success.");
+      new Obstacle(game,this.x,this.y,type,frame);
+    }
+    this.x = this.homeX;
+    this.y = this.homeY;
+  }
+  this.events.onDragStop.add(this.checkOutOfBounds,this);
+  game.add.existing(this);
+};
+
+ObstacleSpawner.prototype = Object.create(Phaser.Sprite.prototype);
+ObstacleSpawner.prototype.constructor = Block;
+
+function Obstacle(game,x,y,type,frame) {
+  console.log(x,y,type,frame);
+  Phaser.Sprite.call(this, game, x, y, type);
+  this.anchor.setTo(.5);
+  this.filters = [game.blurX, game.blurY];
+  game.add.existing(this);
+}
+Obstacle.prototype = Object.create(Phaser.Sprite.prototype);
+Obstacle.prototype.constructor = Block;
+
 class Boot {
   init() {
     game.scale.pageAlignHorizontally = true;
@@ -145,6 +191,9 @@ class Load {
     });
     Object.keys(C.block.assets).forEach(function(assetName) {
       game.load.image(assetName, C.block.assets[assetName], C.block.width, C.block.height);
+    });
+    Object.keys(C.obstacle.assets).forEach(function(assetName) {
+      game.load.image(assetName, C.obstacle.assets[assetName]);
     });
   }
   create() {
@@ -193,6 +242,10 @@ class Load {
       if (!game.blocks) {
         game.blocks = game.add.group();
         game.blocks.classType = Block;
+        game.offensiveSpawners = game.add.group();
+        game.offensiveSpawners.classType = ObstacleSpawner;
+        game.defensiveSpawners = game.add.group();
+        game.defensiveSpawners.classType = ObstacleSpawner;
       } else {
         game.blocks.forEach(function(block) {
          if (!block.alive) {
@@ -233,6 +286,12 @@ class MainMenu {
   }
   create() {
     //game.bg.sprite.filters = [];
+      for (var i = 0; i < C.obstacle.offensive.length; i++) {
+        game.offensiveSpawners.create(game.width - C.obstacle.width/2, C.obstacle.height/2 + C.obstacle.height*i, C.obstacle.offensive[i]);
+      }
+      for (var i = 0; i < C.obstacle.defensive.length; i++) {
+        game.defensiveSpawners.create(C.obstacle.width/2, C.obstacle.height/2 + C.obstacle.height*i, C.obstacle.defensive[i]);
+      }
       if (game.blocks.length == 0) {
       for (var i = 0; i < C.block.names.length; i++) {
           var index = game.blocks.deadBlocks.indexOf(i);
