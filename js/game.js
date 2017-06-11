@@ -131,23 +131,31 @@ function ObstacleSpawner(game,x,y,type,frame) {
   this.homeX = x;
   this.homeY = y;
   this.anchor.setTo(.5);
+  this.obstacleType = type;
   this.filters = [game.blurX, game.blurY];
   this.inputEnabled = true;
   this.input.enableDrag();
+  this.createInstanceOf = function() {
+    if (this.obstacleType == "saw") {
+      new Saw(game,this.x,this.y,type,frame);
+    } else {
+      new Obstacle(game,this.x,this.y,type,frame);
+    }
+  }
   this.checkOutOfBounds = function() {
     if (this.x > C.game.width - 115 || this.x < 115 || this.y < 0 || this.y > C.game.height) {
       console.log("Failure.");
     } else {
       console.log("Success.");
-      new Obstacle(game,this.x,this.y,type,frame);
+      this.createInstanceOf();
     }
     this.x = this.homeX;
     this.y = this.homeY;
   }
   this.events.onDragStop.add(this.checkOutOfBounds,this);
   game.add.existing(this);
+  //REMOVE THIS LATER THIS IS BAD CODE. RESIZE THE SPRITE INSTEAD.
   if (type == "saw") {
-    this.obstacleType = "saw";
     this.scale.setTo(.15);
   }
 }
@@ -155,34 +163,37 @@ function ObstacleSpawner(game,x,y,type,frame) {
 ObstacleSpawner.prototype = Object.create(Phaser.Sprite.prototype);
 ObstacleSpawner.prototype.constructor = ObstacleSpawner;
 
-
 function Obstacle(game,x,y,type,frame) {
   console.log(x,y,type,frame);
   Phaser.Sprite.call(this, game, x, y, type);
   this.anchor.setTo(.5);
   this.filters = [game.blurX, game.blurY];
   game.add.existing(this);
-  if (type == "saw") {
-    this.obstacleType = "saw";
-    this.sawBlade = game.add.sprite(this.x,this.y,"sawblade");
-    game.add.existing(this.sawBlade);
-    this.sawBlade.anchor.setTo(.5);
-    this.sawBlade.filters = [game.blurX, game.blurY];
-    this.sawBlade.scale.setTo(.01);
-    this.sawBlade.x += 1;
-    this.sawBlade.y += 1;
-    this.scale.setTo(.15);
-    game.world.bringToTop(this);
-  }
 }
 Obstacle.prototype = Object.create(Phaser.Sprite.prototype);
 Obstacle.prototype.constructor = Obstacle;
 Obstacle.prototype.update = function() {
-  if (this.obstacleType && this.obstacleType == "saw") {
-    this.sawBlade.angle += 10;
-    if (this.sawBlade.scale.x < .15) {
-      this.sawBlade.scale.setTo(this.sawBlade.scale.x + .01);
-    }
+
+};
+
+function Saw(game,x,y,name,frame) {
+  Obstacle.call(this, game, x, y, name);
+  this.sawBlade = game.add.sprite(this.x,this.y,"sawblade");
+  game.add.existing(this.sawBlade);
+  this.sawBlade.anchor.setTo(.5);
+  this.sawBlade.filters = [game.blurX, game.blurY];
+  this.sawBlade.scale.setTo(.01);
+  this.sawBlade.x += 1;
+  this.sawBlade.y += 1;
+  this.scale.setTo(.15);
+  game.world.bringToTop(this);
+}
+Saw.prototype = Object.create(Phaser.Sprite.prototype);
+Saw.prototype.constructor = Saw;
+Saw.prototype.update = function() {
+  this.sawBlade.angle += 10;
+  if (this.sawBlade.scale.x < .15) {
+    this.sawBlade.scale.setTo(this.sawBlade.scale.x + .01);
   }
 };
 

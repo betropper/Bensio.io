@@ -66,7 +66,6 @@ function Block(count) {
       //constraints the block's velocity to a specific number
       var body = this.body;
       var angle, currVelocitySqr, vx, vy;
-
       vx = body.velocity[0];
       vy = body.velocity[1];
       currVelocitySqr = vx * vx + vy * vy;
