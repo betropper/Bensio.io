@@ -54,13 +54,13 @@ var C = {
   obstacle: {
     width: 72,
     height: 72,
-    offensive: ["saw"],
-    defensive: ["wall","freeze"],
+    offensive: ["Saw"],
+    defensive: ["Wall","Freeze"],
     assets: {
-      "wall": "assets/red-circle.png",
-      "freeze": "assets/blue-circle.png",
-      "saw": "assets/sawbody.png",
-      "sawblade": "assets/sawblade.png"
+      "Wall": "assets/red-circle.png",
+      "Freeze": "assets/blue-circle.png",
+      "Saw": "assets/sawbody.png",
+      "SawBlade": "assets/sawblade.png"
     }
   }
 }
@@ -136,11 +136,17 @@ function ObstacleSpawner(game,x,y,type,frame) {
   this.inputEnabled = true;
   this.input.enableDrag();
   this.createInstanceOf = function() {
-    if (this.obstacleType == "saw") {
+    if (window[this.obstacleType]) {
+      new window[this.obstacleType](game,this.x,this.y,type,frame);
+    } else {
+      new Obstacle(game,this.x,this.y,type,frame);
+    }
+    /*
+    if (this.obstacleType == "Saw") {
       new Saw(game,this.x,this.y,type,frame);
     } else {
       new Obstacle(game,this.x,this.y,type,frame);
-  }
+  }*/
     game.socket.emit('obstacleBought', {player: C.player.name, id: game.socket.id, obstacle: this.obstacleType, x: this.x-C.game.width/2, y: this.y-C.game.height/2});
   }
   this.checkOutOfBounds = function() {
@@ -156,7 +162,7 @@ function ObstacleSpawner(game,x,y,type,frame) {
   this.events.onDragStop.add(this.checkOutOfBounds,this);
   game.add.existing(this);
   //REMOVE THIS LATER THIS IS BAD CODE. RESIZE THE SPRITE INSTEAD.
-  if (type == "saw") {
+  if (type == "Saw") {
     this.scale.setTo(.15);
   }
 }
@@ -169,7 +175,11 @@ function Obstacle(game,x,y,type,frame) {
   Phaser.Sprite.call(this, game, x, y, type);
   this.anchor.setTo(.5);
   this.filters = [game.blurX, game.blurY];
+  game.obstacles.push(this);
   game.add.existing(this);
+  this.clean = function() {
+    this.destroy();
+  }
 }
 Obstacle.prototype = Object.create(Phaser.Sprite.prototype);
 Obstacle.prototype.constructor = Obstacle;
@@ -179,7 +189,7 @@ Obstacle.prototype.update = function() {
 
 function Saw(game,x,y,name,frame) {
   Obstacle.call(this, game, x, y, name);
-  this.sawBlade = game.add.sprite(this.x,this.y,"sawblade");
+  this.sawBlade = game.add.sprite(this.x,this.y,"SawBlade");
   game.add.existing(this.sawBlade);
   this.sawBlade.anchor.setTo(.5);
   this.sawBlade.filters = [game.blurX, game.blurY];
@@ -188,11 +198,15 @@ function Saw(game,x,y,name,frame) {
   //this.sawBlade.y += 1;
   this.scale.setTo(.15);
   game.world.bringToTop(this);
+  this.clean = function() {
+    this.sawBlade.destroy();
+    this.destroy();
+  }
 }
 Saw.prototype = Object.create(Phaser.Sprite.prototype);
 Saw.prototype.constructor = Saw;
 Saw.prototype.update = function() {
-  this.sawBlade.angle += 10;
+  this.sawBlade.angle += 20;
   if (this.sawBlade.scale.x < .6) {
     this.sawBlade.scale.setTo(this.sawBlade.scale.x + .01);
   }
@@ -214,7 +228,7 @@ class Boot {
     });*/
   }
   create() {
-    game.state.start('Load')
+    game.state.start('Load');
   }
 }
 
@@ -280,6 +294,7 @@ class Load {
 
       if (!game.blocks) {
         game.blocks = game.add.group();
+        game.obstacles = [];
         game.blocks.classType = Block;
         game.offensiveSpawners = game.add.group();
         game.offensiveSpawners.classType = ObstacleSpawner;
@@ -316,11 +331,21 @@ class MainMenu {
           game.world.bringToTop(block);
         }
       });
+      game.obstacles.forEach(function(obstacle) {
+        obstacle.clean();
+      });
       game.bg.changeBackground(data.bg);
     });
     game.socket.on('numberChanged',function(number) {
       C.game.number = number;
       game.clickCount.text = number.toString();
+    });
+    game.socket.on('obstaclePlaced',function(data) {
+      if (window[this.obstacleType]) {
+        new window[this.obstacleType](game,this.x,this.y,type,frame);
+      } else {
+        new Obstacle(game,this.x,this.y,type,frame);
+      }
     });
   }
   create() {
@@ -331,6 +356,12 @@ class MainMenu {
       for (var i = 0; i < C.obstacle.defensive.length; i++) {
         game.defensiveSpawners.create(C.obstacle.width/2, C.obstacle.height/2 + C.obstacle.height*i, C.obstacle.defensive[i]);
       }
+      game.offensiveSpawners.forEach(function(spawner) {
+        spawner.inputEnabled = false;
+      });
+      game.defensiveSpawners.forEach(function(spawner) {
+        spawner.inputEnabled = false;
+      });
       if (game.blocks.length == 0) {
       for (var i = 0; i < C.block.names.length; i++) {
           var index = game.blocks.deadBlocks.indexOf(i);
@@ -387,9 +418,15 @@ class Play {
     game.blocks.forEach(function(block) {
       block.revive();
     });
-    console.log("Did it!")
+    console.log("Did it!");
     game.clear();
     game.clickCount.revive();
+    game.offensiveSpawners.forEach(function(spawner) {
+      spawner.inputEnabled = true;
+    });
+    game.defensiveSpawners.forEach(function(spawner) {
+      spawner.inputEnabled = true;
+    });
     //Deal with socket messages.
     this.input.onTap.add(function() {
       game.socket.emit('bet', {player: C.player.name});
@@ -409,10 +446,6 @@ function Background(currentkey) {
       this.sprite.loadTexture(backgroundKey);
     }
     game.world.sendToBack(this.sprite);
-  }
-
-  this.blurrify = function() {
-    
   }
   if (currentkey) {
     this.sprite = game.add.sprite(0,0,currentkey);

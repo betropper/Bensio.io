@@ -53,18 +53,53 @@ function Obstacle(x,y,type) {
   this.body = new p2.Body({
     position: [x,y]
   });
-  this.finishPlacement = function(body,shape) {
-    body.addShape(shape);
-    world.addBody(body);
-  }
-  if (type == "saw") {
-    this.obstacleShape = new p2.Circle({ radius: 40});
-    setTimeout(this.finishPlacement, 2000, this.body, this.obstacleShape);
-  } else {
-    this.obstacleShape = new p2.Circle({ radius: 40});
-    this.finishPlacement(this.body, this.obstacleShape);
-  }
+  this.die = function(deathCase) {
+    world.removeBodies.push(this.body);
+    S.obstacles.splice(this);
+  };
   S.obstacles.push(this);
+  this.body.parent = this;
+}
+
+function Wall(x,y,type) {
+  Obstacle.call(this,x,y,type);
+  this.obstacleShape = new p2.Circle({ radius: 40});
+  this.body.damaging = false;
+  this.body.addShape(this.obstacleShape);
+  world.addBody(this.body);
+}
+
+function Freeze(x,y,type) {
+  Obstacle.call(this,x,y,type);
+  this.obstacleShape = new p2.Circle({ radius: 40});
+  this.body.damaging = false;
+  this.body.addShape(this.obstacleShape);
+  world.addBody(this.body);
+}
+
+function Saw(x,y,type) {
+  setTimeout(function() {
+    Obstacle.call(this,x,y,type);
+    this.obstacleShape = new p2.Circle({ radius: 40});
+    this.body.damaging = true;
+    this.body.addShape(this.obstacleShape);
+    world.addBody(this.body);
+  }, 2000);
+}
+
+function spawnObstacle(x,y,type) {
+  console.log(type);
+  switch (type) {
+    case "Saw":
+      new Saw(x,y,type);
+      break;
+    case "Wall":
+      new Wall(x,y,type);
+      break;
+    case "Freeze":
+      new Freeze(x,y,type);
+      break;
+  }
 }
 
 function Block(count) {
@@ -81,6 +116,7 @@ function Block(count) {
     this.body.parent = this;
     this.blockNumber = count;
     this.hp = 20;
+    this.body.damaging = true;
     this.name = S.block.names[count];
     this.constrainVelocity = function(maxVelocity) {
       //constraints the block's velocity to a specific number
@@ -111,7 +147,6 @@ function Block(count) {
       this.body.velocity = [getRandomInt(-60,60), getRandomInt(-60,60)]; 
     };
 }
-
 
 var world = new p2.World({
   gravity: [0,0]
@@ -152,6 +187,10 @@ var left = new p2.Body({
 });
 
 left.addShape(new p2.Plane());
+left.damaging = true;
+right.damaging = true;
+floor.damaging = true;
+ceiling.damaging = true;
 world.addBody(left);
 world.addBody(right);
 world.addBody(floor);
@@ -206,13 +245,13 @@ world.on('beginContact', function(evt) {
   if (bodyB.parent) {
     console.log(bodyB.parent.name,bodyB.parent.hp);
   }*/
-  if (bodyA.parent) {
+  if (bodyA.parent && bodyA.parent.hp && bodyB.damaging) {
     bodyA.parent.hp -= 1;
     if (bodyA.parent.hp <= 0) {
       bodyA.parent.die();
     }
   }
-  if (bodyB.parent) {
+  if (bodyB.parent && bodyB.parent.hp && bodyA.damaging) {
     bodyB.parent.hp -= 1;
     if (bodyB.parent.hp <= 0) {
       bodyB.parent.die();
@@ -231,7 +270,8 @@ io.sockets.on('connection', function(socket) {
     positions: world.blocks.positions,
     angles: world.blocks.angles,
     velocities: world.blocks.velocities,
-    deadBlocks: world.deadBlocks
+    deadBlocks: world.deadBlocks,
+    obstacles: S.obstacles
   });
   socket.on('bet', function(data) {
     console.log(data.player + ' has placed a bet.');
@@ -240,7 +280,7 @@ io.sockets.on('connection', function(socket) {
   });
   socket.on('obstacleBought', function(data) {
     console.log(data.player + ' has placed a ' + data.obstacle  + '.');
-    var obstacle = new Obstacle(data.x,data.y,data.obstacle);
+    spawnObstacle(data.x,data.y,data.obstacle);
     socket.broadcast.emit('obstaclePlaced', {x: data.x, y: data.y, obstacle: data.obstacle});
   });
   socket.on('nameRegistered', function(name) {
@@ -272,13 +312,13 @@ io.sockets.on('connection', function(socket) {
 var changeRound = function() {
   S.roundChanging = false;
   S.obstacles.forEach(function(obstacle) {
+    obstacle.die();
   });
-  S.obstacles = [];
   var newbg = S.bgs[Math.floor(Math.random() * S.bgs.length)];
   world.blocks.forEach(function(block) {
     block.revive();
- });
-   io.emit('newRound',{
+  });
+  io.emit('newRound',{
     bg: newbg,
     positions: world.blocks.positions,
     angles: world.blocks.angles,
