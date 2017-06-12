@@ -140,7 +140,8 @@ function ObstacleSpawner(game,x,y,type,frame) {
       new Saw(game,this.x,this.y,type,frame);
     } else {
       new Obstacle(game,this.x,this.y,type,frame);
-    }
+  }
+    game.socket.emit('obstacleBought', {player: C.player.name, id: game.socket.id, obstacle: this.obstacleType, x: this.x-C.game.width/2, y: this.y-C.game.height/2});
   }
   this.checkOutOfBounds = function() {
     if (this.x > C.game.width - 115 || this.x < 115 || this.y < 0 || this.y > C.game.height) {
@@ -183,8 +184,8 @@ function Saw(game,x,y,name,frame) {
   this.sawBlade.anchor.setTo(.5);
   this.sawBlade.filters = [game.blurX, game.blurY];
   this.sawBlade.scale.setTo(.01);
-  this.sawBlade.x += 1;
-  this.sawBlade.y += 1;
+  this.sawBlade.x += 1.2;
+  //this.sawBlade.y += 1;
   this.scale.setTo(.15);
   game.world.bringToTop(this);
 }
@@ -192,7 +193,7 @@ Saw.prototype = Object.create(Phaser.Sprite.prototype);
 Saw.prototype.constructor = Saw;
 Saw.prototype.update = function() {
   this.sawBlade.angle += 10;
-  if (this.sawBlade.scale.x < .15) {
+  if (this.sawBlade.scale.x < .6) {
     this.sawBlade.scale.setTo(this.sawBlade.scale.x + .01);
   }
 };

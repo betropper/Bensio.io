@@ -45,8 +45,28 @@ var S = {
       {x: 1008 - 1280/2, y: 744 - 920/2, vx: getRandomInt(-60,60), vy: getRandomInt(-60,60)}
     ],
     names: ["red","blue","green","orange"]
-  }
+  },
+  obstacles: []
 }
+
+function Obstacle(x,y,type) {
+  this.body = new p2.Body({
+    position: [x,y]
+  });
+  this.finishPlacement = function(body,shape) {
+    body.addShape(shape);
+    world.addBody(body);
+  }
+  if (type == "saw") {
+    this.obstacleShape = new p2.Circle({ radius: 40});
+    setTimeout(this.finishPlacement, 2000, this.body, this.obstacleShape);
+  } else {
+    this.obstacleShape = new p2.Circle({ radius: 40});
+    this.finishPlacement(this.body, this.obstacleShape);
+  }
+  S.obstacles.push(this);
+}
+
 function Block(count) {
     this.count = count;
     this.body = new p2.Body({
@@ -218,6 +238,11 @@ io.sockets.on('connection', function(socket) {
     S.testnumber++
     io.sockets.emit('numberChanged', S.testnumber);
   });
+  socket.on('obstacleBought', function(data) {
+    console.log(data.player + ' has placed a ' + data.obstacle  + '.');
+    var obstacle = new Obstacle(data.x,data.y,data.obstacle);
+    socket.broadcast.emit('obstaclePlaced', {x: data.x, y: data.y, obstacle: data.obstacle});
+  });
   socket.on('nameRegistered', function(name) {
     var namenum = 1;
     while (S.registeredNames.indexOf(name) > -1) {
@@ -246,6 +271,9 @@ io.sockets.on('connection', function(socket) {
 
 var changeRound = function() {
   S.roundChanging = false;
+  S.obstacles.forEach(function(obstacle) {
+  });
+  S.obstacles = [];
   var newbg = S.bgs[Math.floor(Math.random() * S.bgs.length)];
   world.blocks.forEach(function(block) {
     block.revive();
