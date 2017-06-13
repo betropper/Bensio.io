@@ -50,12 +50,14 @@ var S = {
 }
 
 function Obstacle(x,y,type) {
+  this.type = type;
   this.body = new p2.Body({
     position: [x,y]
   });
   this.die = function(deathCase) {
     world.removeBodies.push(this.body);
     S.obstacles.splice(this);
+    console.log(type + " died.");
   };
   S.obstacles.push(this);
   this.body.parent = this;

@@ -95,12 +95,13 @@ function Block(game,x,y,color,frame) {
     body.data.velocity[0] = vx;
     body.data.velocity[1] = vy;
   };*/
-  this.syncBlock = function(x,y,angle) {
+  this.syncBlock = function(x,y,rotation) {
     this.x = x + C.game.width/2;
     this.y = y + C.game.height/2;
     /*this.body.x = x;
     this.body.y = y;*/
-    this.angle = angle * (180/Math.PI);
+    //this.angle = angle * (180/Math.PI);
+    this.rotation = rotation;
   }
   this.lose = function(condition) {
     this.dying = true;
@@ -190,6 +191,31 @@ Obstacle.prototype.update = function() {
 function Saw(game,x,y,name,frame) {
   Obstacle.call(this, game, x, y, name);
   this.sawBlade = game.add.sprite(this.x,this.y,"SawBlade");
+  game.add.existing(this.sawBlade);
+  this.sawBlade.anchor.setTo(.5);
+  this.sawBlade.filters = [game.blurX, game.blurY];
+  this.sawBlade.scale.setTo(.01);
+  this.sawBlade.x += 1.2;
+  //this.sawBlade.y += 1;
+  this.scale.setTo(.15);
+  game.world.bringToTop(this);
+  this.clean = function() {
+    this.sawBlade.destroy();
+    this.destroy();
+  }
+}
+Saw.prototype = Object.create(Phaser.Sprite.prototype);
+Saw.prototype.constructor = Saw;
+Saw.prototype.update = function() {
+  this.sawBlade.angle += 20;
+  if (this.sawBlade.scale.x < .6) {
+    this.sawBlade.scale.setTo(this.sawBlade.scale.x + .01);
+  }
+};
+
+function Freeze(game,x,y,name,frame) {
+  Obstacle.call(this, game, x, y, name);
+  this.Aura = game.add.sprite(this.x,this.y,"SawBlade");
   game.add.existing(this.sawBlade);
   this.sawBlade.anchor.setTo(.5);
   this.sawBlade.filters = [game.blurX, game.blurY];
@@ -312,6 +338,17 @@ class Load {
       game.blocks.positions = data.positions;
       game.blocks.velocities = data.velocities;
       game.blocks.deadBlocks = data.deadBlocks;
+      game.obstacles.forEach(function(obstacle) {
+        obstacle.clean()
+      });
+      data.obstacles.forEach(function(obstacle) {
+        if (C.obstacle.offensive.indexOf(obstacle.type) > -1 || C.obstacle.defensive.indexOf(obstacle.type) > -1) {
+          console.log("Buildin' a " + obstacle.type);
+          new window[obstacle.type](game,data.x+C.game.width/2,data.y+C.game.height/2,obstacle.type);
+        } else {
+          new Obstacle(game,data.x+C.game.width/2,data.y+C.game.height/2,obstacle.type);
+        }
+      });
       game.clickCount.kill();
       game.loadingText.destroy();
       if (game.state.current == "Load") {
@@ -341,10 +378,12 @@ class MainMenu {
       game.clickCount.text = number.toString();
     });
     game.socket.on('obstaclePlaced',function(data) {
-      if (window[this.obstacleType]) {
-        new window[this.obstacleType](game,this.x,this.y,type,frame);
+      console.log("Someone else placed a " + data.obstacle + ".");
+      if (C.obstacle.offensive.indexOf(data.obstacle) > -1 || C.obstacle.defensive.indexOf(data.obstacle) > -1) {
+        console.log("AND I'M PLACIN' IT WHEEEEEEEEE-");
+        new window[data.obstacle](game,data.x+C.game.width/2,data.y+C.game.height/2,data.obstacle);
       } else {
-        new Obstacle(game,this.x,this.y,type,frame);
+        new Obstacle(game,data.x+C.game.width/2,data.y+C.game.height/2,data.obstacle);
       }
     });
   }
