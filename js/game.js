@@ -215,8 +215,8 @@ Saw.prototype.update = function() {
 
 function Freeze(game,x,y,name,frame) {
   Obstacle.call(this, game, x, y, name);
-  this.Aura = game.add.sprite(this.x,this.y,"SawBlade");
-  game.add.existing(this.sawBlade);
+  this.aura = game.add.sprite(this.x,this.y,"Aura");
+  game.add.existing(this.aura);
   this.sawBlade.anchor.setTo(.5);
   this.sawBlade.filters = [game.blurX, game.blurY];
   this.sawBlade.scale.setTo(.01);
