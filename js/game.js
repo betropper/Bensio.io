@@ -278,7 +278,7 @@ Saw.prototype = Object.create(Phaser.Sprite.prototype);
 Saw.prototype.constructor = Saw;
 Saw.prototype.update = function() {
   this.sawBlade.angle += 20;
-  if (this.sawBlade.scale.x < .75) {
+  if (this.sawBlade.scale.x < .8) {
     this.sawBlade.scale.setTo(this.sawBlade.scale.x + .02);
   }
 };
@@ -294,9 +294,11 @@ function Freeze(game,x,y,name,frame) {
   game.world.bringToTop(this);
   this.pulseOut = true;
   this.clean = function() {
-    this.tweenTint(this,0xffffff, 0x000000, 1000);
-    game.add.tween(this.aura).to( { width: 200, height: 200 }, 1000, Phaser.Easing.Linear.None, true, 0);
-    game.time.events.add(Phaser.Timer.SECOND * 1, function() {
+    this.tweenTint(this,0xffffff, 0xfeffff, 1000);
+    game.add.tween(this).to( { width: 0, height: 0, alpha: 0 }, 200, Phaser.Easing.Linear.None, true, 0);
+    this.aura.scale.setTo(.01);
+    game.add.tween(this.aura).to( { width: 200, height: 200 }, 100, Phaser.Easing.Linear.None, true, 0).yoyo(true);
+    game.time.events.add(400, function() {
       this.aura.destroy();
       this.destroy();
     }, this);
@@ -307,7 +309,7 @@ Freeze.prototype.constructor = Freeze;
 Freeze.prototype.update = function() {
   if (this.pulseOut) {
     this.aura.scale.setTo(this.aura.scale.x + .05);
-    if (this.aura.scale.x >= .4) {
+    if (this.aura.scale.x >= .3) {
       this.pulseOut = false;
     }
   } else {
@@ -517,6 +519,7 @@ class MainMenu {
         }
         var tempDataObstacles = convertSet(data.obstacles);
         var tempGameObstacles = convertSet(game.obstacles);
+        var tempLocalObstacles = convertSet(game.localObstacles);
         if (!compareSets(tempDataObstacles,tempGameObstacles)) {
           console.log(data.obstacles,game.obstacles);
           console.log("Obstacles changed.");
@@ -528,17 +531,18 @@ class MainMenu {
               newestObstacle.obstacleNumber = obstacle.obstacleNumber;
             }
           });
-          for (i = 0; i < game.obstacles.length; i++) {
-            if (tempDataObstacles.indexOf(game.obstacles[i].obstacleNumber) < 0) {
-             console.log(game.obstacles[i],game.localObstacles[i]);
-             game.localObstacles[i].clean();
-            }
-          }
-          for (i = 0; i < game.localObstacles.length; i++) {
+          for (i = game.localObstacles.length-1; i >= 0; i--) {
+              if (tempDataObstacles.indexOf(game.localObstacles[i].obstacleNumber) < 0) {
+                console.log(game.localObstacles[i], "To be deleted");
+                game.localObstacles[i].clean();
+                game.localObstacles.splice(i,1);
+              }
+            };
+          /*for (i = 0; i < game.localObstacles.length; i++) {
             if (!game.localObstacles[i] || !game.localObstacles[i].alive) {
               game.localObstacles.splice(i,1);
             }
-          }
+          }*/
           game.obstacles = data.obstacles;
         }
         //game.blocks.children[i].x = data.positions[i][0];
