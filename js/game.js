@@ -1,3 +1,24 @@
+function convertSet(a1) {
+  // Contents check
+  var len = a1.length;
+  var numblist1 = [];
+  for (i = 0; i < len; i++) {
+    if (a1[i].obstacleNumber) {
+      numblist1.push(a1[i].obstacleNumber); 
+    }
+  }
+  return numblist1;
+}
+
+function compareSets(a1, a2) {
+  if (a1.length !== a2.length) { return false; }
+  if (a1.sort().join('|') === a2.sort().join('|')) {
+      return true;
+  } else {
+      return false;
+  }
+}
+
 var C = {
   game: {
     //width: window.innerWidth * window.devicePixelRatio,
@@ -24,7 +45,7 @@ var C = {
       padding: 20,
       borderRadius: 20,
       max: 20,
-      placeHolder: 'Anonymous',
+      placeHolder: sessionStorage.getItem('userName') || 'Anonymous',
     }
   },
   background: {
@@ -58,7 +79,8 @@ var C = {
     defensive: ["Wall","Freeze"],
     assets: {
       "Wall": "assets/red-circle.png",
-      "Freeze": "assets/blue-circle.png",
+      "Freeze": "assets/freeze.png",
+      "FreezeAura": "assets/freezeaura.png",
       "Saw": "assets/sawbody.png",
       "SawBlade": "assets/sawblade.png"
     }
@@ -128,7 +150,7 @@ Block.prototype.update = function() {
 
 function ObstacleSpawner(game,x,y,type,frame) {
   console.log(x,y,type,frame);
-  Phaser.Sprite.call(this, game, x, y, type);
+  Phaser.Sprite.call(this, game, x, y, type, frame);
   this.homeX = x;
   this.homeY = y;
   this.anchor.setTo(.5);
@@ -137,18 +159,28 @@ function ObstacleSpawner(game,x,y,type,frame) {
   this.inputEnabled = true;
   this.input.enableDrag();
   this.createInstanceOf = function() {
-    if (window[this.obstacleType]) {
-      new window[this.obstacleType](game,this.x,this.y,type,frame);
+    /*if (window[this.obstacleType]) {
+      var tempObst = new window[this.obstacleType](game,this.x,this.y,type);
     } else {
-      new Obstacle(game,this.x,this.y,type,frame);
+      var tempObst = new Obstacle(game,this.x,this.y,type);
+    }*/
+    var tempObst = game.add.sprite(this.x,this.y,type);
+    tempObst.anchor.setTo(.5);
+    if (type == "Saw") {
+      tempObst.scale.setTo(.2);
+    } else if (type == "Freeze") {
+      tempObst.scale.setTo(.3);
     }
-    /*
-    if (this.obstacleType == "Saw") {
+    tempObst.lifespan = 100;
+    /*game.time.events.add(Phaser.Timer.SECOND * .1, function() {
+      this.destroy();
+    }, tempObst);*/
+    /*if (this.obstacleType == "Saw") {
       new Saw(game,this.x,this.y,type,frame);
     } else {
       new Obstacle(game,this.x,this.y,type,frame);
   }*/
-    game.socket.emit('obstacleBought', {player: C.player.name, id: game.socket.id, obstacle: this.obstacleType, x: this.x-C.game.width/2, y: this.y-C.game.height/2});
+    game.socket.emit('obstacleBought', {player: C.player.name, obstacle: this.obstacleType, x: this.x-C.game.width/2, y: this.y-C.game.height/2});
   }
   this.checkOutOfBounds = function() {
     if (this.x > C.game.width - 115 || this.x < 115 || this.y < 0 || this.y > C.game.height) {
@@ -165,6 +197,14 @@ function ObstacleSpawner(game,x,y,type,frame) {
   //REMOVE THIS LATER THIS IS BAD CODE. RESIZE THE SPRITE INSTEAD.
   if (type == "Saw") {
     this.scale.setTo(.15);
+    this.events.onDragStart.add(function() {
+      this.scale.setTo(.2);
+    }, this);
+    this.events.onDragStop.add(function() {
+      this.scale.setTo(.15); 
+    }, this);
+  } else if (type == "Freeze") {
+    this.scale.setTo(.3);
   }
 }
 
@@ -176,15 +216,45 @@ function Obstacle(game,x,y,type,frame) {
   Phaser.Sprite.call(this, game, x, y, type);
   this.anchor.setTo(.5);
   this.filters = [game.blurX, game.blurY];
-  game.obstacles.push(this);
+  game.localObstacles.push(this);
   game.add.existing(this);
   this.clean = function() {
     this.destroy();
+  }
+  this.tweenTint = function(obj, startColor, endColor, time, yoyo, repeat) {
+    var repeat = repeat || 0;
+    // create an object to tween with our step value at 0   
+    var colorBlend = {step: 0};
+    // create the tween on this object and tween its step property to 100
+    var colorTween = game.add.tween(colorBlend).to({step: 100}, time, Phaser.Easing.Linear.None, false, 0, repeat);
+    // run the interpolateColor function every time the tween updates, feeding it the updated value of our tween each time, and set the result as our tint
+    colorTween.onUpdateCallback(function() { 
+      obj.tint = Phaser.Color.interpolateColor(startColor, endColor, 100, colorBlend.step);
+    });
+    // set the object to the start color straight away
+    obj.tint = startColor;
+    // start the tween
+    colorTween.start();
+    if (yoyo && repeat) {
+      colorTween.yoyo(true,repeat);
+    } else if (yoyo) {
+      colorTween.yoyo(true);
+    }
   }
 }
 Obstacle.prototype = Object.create(Phaser.Sprite.prototype);
 Obstacle.prototype.constructor = Obstacle;
 Obstacle.prototype.update = function() {
+
+};
+
+
+function Wall(game,x,y,name,frame) {
+  Obstacle.call(this,game,x,y,name);
+}
+Wall.prototype = Object.create(Phaser.Sprite.prototype);
+Wall.prototype.constructor = Wall;
+Wall.prototype.update = function() {
 
 };
 
@@ -195,9 +265,9 @@ function Saw(game,x,y,name,frame) {
   this.sawBlade.anchor.setTo(.5);
   this.sawBlade.filters = [game.blurX, game.blurY];
   this.sawBlade.scale.setTo(.01);
-  this.sawBlade.x += 1.2;
-  //this.sawBlade.y += 1;
-  this.scale.setTo(.15);
+  this.sawBlade.x += 1.7;
+  this.sawBlade.y += 1.2;
+  this.scale.setTo(.2);
   game.world.bringToTop(this);
   this.clean = function() {
     this.sawBlade.destroy();
@@ -208,33 +278,43 @@ Saw.prototype = Object.create(Phaser.Sprite.prototype);
 Saw.prototype.constructor = Saw;
 Saw.prototype.update = function() {
   this.sawBlade.angle += 20;
-  if (this.sawBlade.scale.x < .6) {
-    this.sawBlade.scale.setTo(this.sawBlade.scale.x + .01);
+  if (this.sawBlade.scale.x < .75) {
+    this.sawBlade.scale.setTo(this.sawBlade.scale.x + .02);
   }
 };
 
 function Freeze(game,x,y,name,frame) {
   Obstacle.call(this, game, x, y, name);
-  this.aura = game.add.sprite(this.x,this.y,"Aura");
+  this.aura = game.add.sprite(this.x,this.y,"FreezeAura");
   game.add.existing(this.aura);
-  this.sawBlade.anchor.setTo(.5);
-  this.sawBlade.filters = [game.blurX, game.blurY];
-  this.sawBlade.scale.setTo(.01);
-  this.sawBlade.x += 1.2;
-  //this.sawBlade.y += 1;
-  this.scale.setTo(.15);
+  this.aura.anchor.setTo(.5);
+  this.aura.filters = [game.blurX, game.blurY];
+  this.aura.scale.setTo(.2);
+  this.scale.setTo(.3);
   game.world.bringToTop(this);
+  this.pulseOut = true;
   this.clean = function() {
-    this.sawBlade.destroy();
-    this.destroy();
+    this.tweenTint(this,0xffffff, 0x000000, 1000);
+    game.add.tween(this.aura).to( { width: 200, height: 200 }, 1000, Phaser.Easing.Linear.None, true, 0);
+    game.time.events.add(Phaser.Timer.SECOND * 1, function() {
+      this.aura.destroy();
+      this.destroy();
+    }, this);
   }
 }
-Saw.prototype = Object.create(Phaser.Sprite.prototype);
-Saw.prototype.constructor = Saw;
-Saw.prototype.update = function() {
-  this.sawBlade.angle += 20;
-  if (this.sawBlade.scale.x < .6) {
-    this.sawBlade.scale.setTo(this.sawBlade.scale.x + .01);
+Freeze.prototype = Object.create(Phaser.Sprite.prototype);
+Freeze.prototype.constructor = Freeze;
+Freeze.prototype.update = function() {
+  if (this.pulseOut) {
+    this.aura.scale.setTo(this.aura.scale.x + .05);
+    if (this.aura.scale.x >= .4) {
+      this.pulseOut = false;
+    }
+  } else {
+    this.aura.scale.setTo(this.aura.scale.x - .01);
+    if (this.aura.scale.x <= .1) {
+      this.pulseOut = true;
+    }
   }
 };
 
@@ -321,6 +401,7 @@ class Load {
       if (!game.blocks) {
         game.blocks = game.add.group();
         game.obstacles = [];
+        game.localObstacles = [];
         game.blocks.classType = Block;
         game.offensiveSpawners = game.add.group();
         game.offensiveSpawners.classType = ObstacleSpawner;
@@ -338,17 +419,17 @@ class Load {
       game.blocks.positions = data.positions;
       game.blocks.velocities = data.velocities;
       game.blocks.deadBlocks = data.deadBlocks;
-      game.obstacles.forEach(function(obstacle) {
+      /*game.obstacles.forEach(function(obstacle) {
         obstacle.clean()
-      });
-      data.obstacles.forEach(function(obstacle) {
+      });*/
+      /*data.obstacles.forEach(function(obstacle) {
         if (C.obstacle.offensive.indexOf(obstacle.type) > -1 || C.obstacle.defensive.indexOf(obstacle.type) > -1) {
           console.log("Buildin' a " + obstacle.type);
           new window[obstacle.type](game,data.x+C.game.width/2,data.y+C.game.height/2,obstacle.type);
         } else {
           new Obstacle(game,data.x+C.game.width/2,data.y+C.game.height/2,obstacle.type);
         }
-      });
+      });*/
       game.clickCount.kill();
       game.loadingText.destroy();
       if (game.state.current == "Load") {
@@ -368,24 +449,28 @@ class MainMenu {
           game.world.bringToTop(block);
         }
       });
-      game.obstacles.forEach(function(obstacle) {
+      /*game.localObstacles.forEach(function(obstacle) {
         obstacle.clean();
-      });
+      });*/
       game.bg.changeBackground(data.bg);
     });
     game.socket.on('numberChanged',function(number) {
       C.game.number = number;
       game.clickCount.text = number.toString();
     });
-    game.socket.on('obstaclePlaced',function(data) {
-      console.log("Someone else placed a " + data.obstacle + ".");
-      if (C.obstacle.offensive.indexOf(data.obstacle) > -1 || C.obstacle.defensive.indexOf(data.obstacle) > -1) {
+    /*game.socket.on('obstaclePlaced',function(data) {
+      console.log("Someone else placed a " + data.obstacle.type + ".");
+      if (C.obstacle.offensive.indexOf(data.obstacle.type) > -1 || C.obstacle.defensive.indexOf(data.obstacle.type) > -1) {
         console.log("AND I'M PLACIN' IT WHEEEEEEEEE-");
-        new window[data.obstacle](game,data.x+C.game.width/2,data.y+C.game.height/2,data.obstacle);
+        var newestObstacle = new window[data.obstacle.type](game,data.x+C.game.width/2,data.y+C.game.height/2,data.obstacle.type);
       } else {
-        new Obstacle(game,data.x+C.game.width/2,data.y+C.game.height/2,data.obstacle);
+        var newestObstacle = new Obstacle(game,data.x+C.game.width/2,data.y+C.game.height/2,data.obstacle.type);
       }
+      newestObstacle.obstacleNumber = data.obstacle.obstacleNumber;
     });
+  game.socket.on('obstacleVerified', function(number) {
+    
+  });*/
   }
   create() {
     //game.bg.sprite.filters = [];
@@ -430,6 +515,32 @@ class MainMenu {
         } else if (game.blocks.children[i].alive) {
           game.blocks.children[i].syncBlock(data.positions[i][0], data.positions[i][1],data.angles[i]);
         }
+        var tempDataObstacles = convertSet(data.obstacles);
+        var tempGameObstacles = convertSet(game.obstacles);
+        if (!compareSets(tempDataObstacles,tempGameObstacles)) {
+          console.log(data.obstacles,game.obstacles);
+          console.log("Obstacles changed.");
+          //First. Are there any new obstacles? If so, create them.
+          data.obstacles.forEach(function(obstacle) {
+            if (tempGameObstacles.indexOf(obstacle.obstacleNumber) < 0 ) {
+              console.log("AND I'M PLACIN' ONE WHEEEEEEEEE-");
+              var newestObstacle = new window[obstacle.type](game,obstacle.x+C.game.width/2,obstacle.y+C.game.height/2,obstacle.type);
+              newestObstacle.obstacleNumber = obstacle.obstacleNumber;
+            }
+          });
+          for (i = 0; i < game.obstacles.length; i++) {
+            if (tempDataObstacles.indexOf(game.obstacles[i].obstacleNumber) < 0) {
+             console.log(game.obstacles[i],game.localObstacles[i]);
+             game.localObstacles[i].clean();
+            }
+          }
+          for (i = 0; i < game.localObstacles.length; i++) {
+            if (!game.localObstacles[i] || !game.localObstacles[i].alive) {
+              game.localObstacles.splice(i,1);
+            }
+          }
+          game.obstacles = data.obstacles;
+        }
         //game.blocks.children[i].x = data.positions[i][0];
         //game.blocks.children[i].y = data.positions[i][1];
         //game.blocks.children[i].body.velocity.x = data.velocities[i][0];
@@ -444,7 +555,8 @@ class MainMenu {
     console.log(input);
     var enter = game.input.keyboard.addKey(Phaser.Keyboard.ENTER);
     enter.onDown.add(function() {
-      C.player.name = input.value || 'Anonymous';
+      C.player.name = input.value || sessionStorage.getItem('userName') || 'Anonymous';
+      sessionStorage.setItem('userName', C.player.name);
       game.socket.emit('nameRegistered', C.player.name);
       input.destroy();
       game.state.start('Play',false);

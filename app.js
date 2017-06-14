@@ -46,21 +46,31 @@ var S = {
     ],
     names: ["red","blue","green","orange"]
   },
-  obstacles: []
+  obstacles: [],
+  obstacleData: [],
+  obstacleCount: 0
 }
 
 function Obstacle(x,y,type) {
   this.type = type;
+  S.obstacleCount++
+  this.obstacleNumber = S.obstacleCount;
   this.body = new p2.Body({
     position: [x,y]
   });
   this.die = function(deathCase) {
     world.removeBodies.push(this.body);
-    S.obstacles.splice(this);
     console.log(type + " died.");
   };
-  S.obstacles.push(this);
   this.body.parent = this;
+  this.info = {
+    x: x,
+    y: y,
+    type: type,
+    obstacleNumber: this.obstacleNumber
+  };
+  S.obstacles.push(this);
+  S.obstacleData.push(this.info);
 }
 
 function Wall(x,y,type) {
@@ -75,33 +85,40 @@ function Freeze(x,y,type) {
   Obstacle.call(this,x,y,type);
   this.obstacleShape = new p2.Circle({ radius: 40});
   this.body.damaging = false;
+  this.body.stunning = true;
+  this.stunTime = 2000;
   this.body.addShape(this.obstacleShape);
   world.addBody(this.body);
 }
 
 function Saw(x,y,type) {
-  setTimeout(function() {
-    Obstacle.call(this,x,y,type);
-    this.obstacleShape = new p2.Circle({ radius: 40});
-    this.body.damaging = true;
-    this.body.addShape(this.obstacleShape);
-    world.addBody(this.body);
-  }, 2000);
+  Obstacle.call(this,x,y,type);
+  setTimeout(function(saw) {
+    if (!S.roundChanging) {
+      saw.obstacleShape = new p2.Circle({ radius: 50});
+      saw.body.damaging = true;
+      saw.body.addShape(saw.obstacleShape);
+      world.addBody(saw.body);
+    }
+  }, 2000,this);
 }
 
-function spawnObstacle(x,y,type) {
-  console.log(type);
+function spawnObstacle(x,y,type,owner) {
   switch (type) {
     case "Saw":
-      new Saw(x,y,type);
+      var newObstacle = new Saw(x,y,type)
+      //S.online[owner].obstaclesOwned.Saw.push(newObstacle);
       break;
     case "Wall":
-      new Wall(x,y,type);
+      var newObstacle = new Wall(x,y,type)
+      //S.online[owner].obstaclesOwned.Wall.push(newObstacle);
       break;
     case "Freeze":
-      new Freeze(x,y,type);
+      var newObstacle = new Freeze(x,y,type)
+      //S.online[owner].obstaclesOwned.Freeze.push(newObstacle);
       break;
   }
+  //console.log("New obstacle list",S.obstacles);
 }
 
 function Block(count) {
@@ -119,6 +136,7 @@ function Block(count) {
     this.blockNumber = count;
     this.hp = 20;
     this.body.damaging = true;
+    this.body.inertia = 0;
     this.name = S.block.names[count];
     this.constrainVelocity = function(maxVelocity) {
       //constraints the block's velocity to a specific number
@@ -159,7 +177,7 @@ world.deadBlocks = [];
 world.removeBodies = [];
 for (i = 0; i < 4; i++) {
   world.blocks[i] = new Block(i);
-  }
+}
 world.blocks.positions = [];
 world.blocks.velocities = [];
 world.blocks.angles = [];
@@ -209,7 +227,6 @@ setInterval(function(){
 
 //requestAnimationFrame(animate);
 
-
 world.on('postStep', function() {
   for (var i = 0; i < world.removeBodies.length; i++) {
     world.removeBody(world.removeBodies[i]);
@@ -218,7 +235,11 @@ world.on('postStep', function() {
   world.blocks.forEach(function(block) {
     if (block.hp > 0) {
       //console.log(world.blocks[0].body.velocity[1]);
-      block.constrainVelocity(S.block.velocityConstant);
+      if (!block.stunned) {
+        block.constrainVelocity(S.block.velocityConstant);
+      } else {
+        block.constrainVelocity(0);
+      }
       world.blocks.positions[block.count] = block.body.position;
       world.blocks.velocities[block.count] = block.body.velocity;
       world.blocks.angles[block.count] = block.body.angle;
@@ -233,7 +254,8 @@ world.on('postStep', function() {
       positions: world.blocks.positions,
       angles: world.blocks.angles,
       velocities: world.blocks.velocities,
-      deadBlocks: world.deadBlocks
+      deadBlocks: world.deadBlocks,
+      obstacles: S.obstacleData
     });
   }
 });
@@ -247,16 +269,38 @@ world.on('beginContact', function(evt) {
   if (bodyB.parent) {
     console.log(bodyB.parent.name,bodyB.parent.hp);
   }*/
-  if (bodyA.parent && bodyA.parent.hp && bodyB.damaging) {
-    bodyA.parent.hp -= 1;
-    if (bodyA.parent.hp <= 0) {
-      bodyA.parent.die();
+  if (bodyA.parent && bodyA.parent.hp) {
+    if (bodyB.damaging) {
+      bodyA.parent.hp -= 1;
+      if (bodyA.parent.hp <= 0) {
+        bodyA.parent.die();
+      }
+    }
+    if (bodyB.stunning && bodyB.parent) {
+      bodyB.parent.die();
+      S.obstacles.splice(S.obstacles.indexOf(bodyB.parent),1);
+      S.obstacleData.splice(S.obstacleData.indexOf(bodyB.parent.info),1);
+      bodyA.parent.stunned = true;
+      setTimeout(function(stunnedBlock) {
+        stunnedBlock.stunned = false;
+      }, bodyB.parent.stunTime, bodyA.parent);
     }
   }
-  if (bodyB.parent && bodyB.parent.hp && bodyA.damaging) {
-    bodyB.parent.hp -= 1;
-    if (bodyB.parent.hp <= 0) {
-      bodyB.parent.die();
+  if (bodyB.parent && bodyB.parent.hp) {
+    if (bodyA.damaging) {
+      bodyB.parent.hp -= 1;
+      if (bodyB.parent.hp <= 0) {
+        bodyB.parent.die();
+      }
+    }
+    if (bodyA.stunning && bodyA.parent) {
+      bodyA.parent.die();
+      S.obstacles.splice(S.obstacles.indexOf(bodyA.parent),1);
+      S.obstacleData.splice(S.obstacleData.indexOf(bodyA.parent.info),1);
+      bodyB.parent.stunned = true;
+      setTimeout(function(stunnedBlock) {
+        stunnedBlock.stunned = false;
+      }, bodyA.parent.stunTime, bodyB.parent);
     }
   }
 });
@@ -272,18 +316,23 @@ io.sockets.on('connection', function(socket) {
     positions: world.blocks.positions,
     angles: world.blocks.angles,
     velocities: world.blocks.velocities,
-    deadBlocks: world.deadBlocks,
-    obstacles: S.obstacles
+    deadBlocks: world.deadBlocks
   });
   socket.on('bet', function(data) {
-    console.log(data.player + ' has placed a bet.');
-    S.testnumber++
-    io.sockets.emit('numberChanged', S.testnumber);
+    if (data.player) {
+      console.log(data.player + ' has placed a bet.');
+      S.testnumber++
+      io.sockets.emit('numberChanged', S.testnumber);
+    }
   });
   socket.on('obstacleBought', function(data) {
-    console.log(data.player + ' has placed a ' + data.obstacle  + '.');
-    spawnObstacle(data.x,data.y,data.obstacle);
-    socket.broadcast.emit('obstaclePlaced', {x: data.x, y: data.y, obstacle: data.obstacle});
+    if (S.online[socket.id]) {
+      console.log(data.player + ' has placed a ' + data.obstacle  + '.');
+      spawnObstacle(data.x,data.y,data.obstacle,socket.id);
+      //io.sockets.emit('obstaclePlaced', {x: data.x, y: data.y, obstacle: newestObstacle});
+      //io.to(socket.id).emit('obstacleVerified', newestObstacle.obstacleNumber);
+      //
+    }
   });
   socket.on('nameRegistered', function(name) {
     var namenum = 1;
@@ -295,7 +344,12 @@ io.sockets.on('connection', function(socket) {
     S.registeredNames.push(name);
     S.online[socket.id] = {
       buxio: 0,
-      name: name
+      name: name,
+      obstaclesOwned: {
+        Freeze: [],
+        Wall: [],
+        Saw: []
+      }
     };
     console.log(name + " has registered their name.");
     console.log(S.online);
@@ -304,7 +358,7 @@ io.sockets.on('connection', function(socket) {
     //S.online.splice();
     if (S.online[socket.id]) {
       console.log(S.online[socket.id].name, 'has left the game.');
-      S.registeredNames.splice(S.online[socket.id].name);
+      S.registeredNames.splice(S.registeredNames.indexOf(S.online[socket.id].name));
       delete S.online[socket.id];
       console.log(S.online);
     }
@@ -316,6 +370,8 @@ var changeRound = function() {
   S.obstacles.forEach(function(obstacle) {
     obstacle.die();
   });
+  S.obstacles = [];
+  S.obstacleData = [];
   var newbg = S.bgs[Math.floor(Math.random() * S.bgs.length)];
   world.blocks.forEach(function(block) {
     block.revive();
