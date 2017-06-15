@@ -216,7 +216,7 @@ world.addBody(right);
 world.addBody(floor);
 world.addBody(ceiling);
 
-var fixedTimeStep = 1 / 60; // seconds
+var fixedTimeStep = 1 / 100; // seconds
 
 setInterval(function(){
   // Move bodies forward in time
@@ -367,9 +367,9 @@ io.sockets.on('connection', function(socket) {
 
 var changeRound = function() {
   S.roundChanging = false;
-  S.obstacles.forEach(function(obstacle) {
-    obstacle.die();
-  });
+  for (i = S.obstacles.length-1; i >= 0; i--) {
+    S.obstacles[i].die();
+  };
   S.obstacles = [];
   S.obstacleData = [];
   var newbg = S.bgs[Math.floor(Math.random() * S.bgs.length)];

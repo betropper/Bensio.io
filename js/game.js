@@ -204,7 +204,13 @@ function ObstacleSpawner(game,x,y,type,frame) {
       this.scale.setTo(.15); 
     }, this);
   } else if (type == "Freeze") {
-    this.scale.setTo(.3);
+    this.scale.setTo(.2);
+    this.events.onDragStart.add(function() {
+      this.scale.setTo(.3);
+    }, this);
+    this.events.onDragStop.add(function() {
+      this.scale.setTo(.2); 
+    }, this);
   }
 }
 
@@ -247,7 +253,6 @@ Obstacle.prototype.constructor = Obstacle;
 Obstacle.prototype.update = function() {
 
 };
-
 
 function Wall(game,x,y,name,frame) {
   Obstacle.call(this,game,x,y,name);
@@ -295,10 +300,10 @@ function Freeze(game,x,y,name,frame) {
   this.pulseOut = true;
   this.clean = function() {
     this.tweenTint(this,0xffffff, 0xfeffff, 1000);
-    game.add.tween(this).to( { width: 0, height: 0, alpha: 0 }, 200, Phaser.Easing.Linear.None, true, 0);
+    game.add.tween(this).to( { width: 0, height: 0, alpha: 0 }, 150, Phaser.Easing.Linear.None, true, 0);
     this.aura.scale.setTo(.01);
-    game.add.tween(this.aura).to( { width: 200, height: 200 }, 100, Phaser.Easing.Linear.None, true, 0).yoyo(true);
-    game.time.events.add(400, function() {
+    game.add.tween(this.aura).to( { width: 200, height: 200, alpha: .5 }, 200, Phaser.Easing.Linear.None, true, 0).yoyo(true);
+    game.time.events.add(200, function() {
       this.aura.destroy();
       this.destroy();
     }, this);
@@ -402,7 +407,6 @@ class Load {
 
       if (!game.blocks) {
         game.blocks = game.add.group();
-        game.obstacles = [];
         game.localObstacles = [];
         game.blocks.classType = Block;
         game.offensiveSpawners = game.add.group();
@@ -443,6 +447,9 @@ class Load {
 
 class MainMenu {
   preload() {
+   document.getElementById("signInButton").style["animation-name"] = "flyIn";
+   document.getElementById("signInButton").style["animation-duration"] = "2s";
+   document.getElementById("signInButton").style["bottom"] = "10%";
     game.socket.on('newRound', function(data) {
       console.log('Round over.');
       game.blocks.forEach(function(block) {
@@ -460,19 +467,6 @@ class MainMenu {
       C.game.number = number;
       game.clickCount.text = number.toString();
     });
-    /*game.socket.on('obstaclePlaced',function(data) {
-      console.log("Someone else placed a " + data.obstacle.type + ".");
-      if (C.obstacle.offensive.indexOf(data.obstacle.type) > -1 || C.obstacle.defensive.indexOf(data.obstacle.type) > -1) {
-        console.log("AND I'M PLACIN' IT WHEEEEEEEEE-");
-        var newestObstacle = new window[data.obstacle.type](game,data.x+C.game.width/2,data.y+C.game.height/2,data.obstacle.type);
-      } else {
-        var newestObstacle = new Obstacle(game,data.x+C.game.width/2,data.y+C.game.height/2,data.obstacle.type);
-      }
-      newestObstacle.obstacleNumber = data.obstacle.obstacleNumber;
-    });
-  game.socket.on('obstacleVerified', function(number) {
-    
-  });*/
   }
   create() {
     //game.bg.sprite.filters = [];
@@ -518,14 +512,12 @@ class MainMenu {
           game.blocks.children[i].syncBlock(data.positions[i][0], data.positions[i][1],data.angles[i]);
         }
         var tempDataObstacles = convertSet(data.obstacles);
-        var tempGameObstacles = convertSet(game.obstacles);
         var tempLocalObstacles = convertSet(game.localObstacles);
-        if (!compareSets(tempDataObstacles,tempGameObstacles)) {
-          console.log(data.obstacles,game.obstacles);
+        if (!compareSets(tempDataObstacles,tempLocalObstacles)) {
           console.log("Obstacles changed.");
           //First. Are there any new obstacles? If so, create them.
           data.obstacles.forEach(function(obstacle) {
-            if (tempGameObstacles.indexOf(obstacle.obstacleNumber) < 0 ) {
+            if (tempLocalObstacles.indexOf(obstacle.obstacleNumber) < 0 ) {
               console.log("AND I'M PLACIN' ONE WHEEEEEEEEE-");
               var newestObstacle = new window[obstacle.type](game,obstacle.x+C.game.width/2,obstacle.y+C.game.height/2,obstacle.type);
               newestObstacle.obstacleNumber = obstacle.obstacleNumber;
@@ -543,7 +535,6 @@ class MainMenu {
               game.localObstacles.splice(i,1);
             }
           }*/
-          game.obstacles = data.obstacles;
         }
         //game.blocks.children[i].x = data.positions[i][0];
         //game.blocks.children[i].y = data.positions[i][1];
@@ -563,6 +554,7 @@ class MainMenu {
       sessionStorage.setItem('userName', C.player.name);
       game.socket.emit('nameRegistered', C.player.name);
       input.destroy();
+      document.getElementById("signInButton").remove();
       game.state.start('Play',false);
     });
   }

@@ -26,10 +26,29 @@
           background-position: center center;
           display:none;
         }
+      @keyframes flyIn {
+          0%   {bottom: -20%;}
+          100% {bottom: 10%;}
+      }
     </style>
   </head>
 
   <body>
+    <script src="https://apis.google.com/js/platform.js" async defer></script>
+    <meta name="google-signin-client_id" content="1059212892170-025b6gqce44nra0o71rj2mikokrciaie.apps.googleusercontent.com">
+    <div id="signInButton" class="g-signin2" data-onsuccess="onSignIn" style="position:absolute;bottom:-20%;left:50%;transform: translate(-50%,-50%);"></div>
+    <script>
+      Element.prototype.remove = function() {
+          this.parentElement.removeChild(this);
+      }
+      NodeList.prototype.remove = HTMLCollection.prototype.remove = function() {
+          for(var i = this.length - 1; i >= 0; i--) {
+              if(this[i] && this[i].parentElement) {
+                  this[i].parentElement.removeChild(this[i]);
+              }
+          }
+      }
+    </script>
     <!--<div id="main">
       <script src="node_modules/phaser-input/build/phaser-input.js"></script> 
       <script src="js/phaser.js"></script>
