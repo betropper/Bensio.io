@@ -50,14 +50,14 @@ var S = {
   obstacleData: [],
   obstacleCount: 0
 }
-
-function Obstacle(x,y,type) {
+function Obstacle(x,y,type,material) {
   this.type = type;
   S.obstacleCount++
   this.obstacleNumber = S.obstacleCount;
   this.body = new p2.Body({
     position: [x,y]
   });
+  this.body.material = material;
   this.die = function(deathCase) {
     world.removeBodies.push(this.body);
     console.log(type + " died.");
@@ -73,16 +73,16 @@ function Obstacle(x,y,type) {
   S.obstacleData.push(this.info);
 }
 
-function Wall(x,y,type) {
-  Obstacle.call(this,x,y,type);
+function Wall(x,y,type,material) {
+  Obstacle.call(this,x,y,type,material);
   this.obstacleShape = new p2.Circle({ radius: 40});
   this.body.damaging = false;
   this.body.addShape(this.obstacleShape);
   world.addBody(this.body);
 }
 
-function Freeze(x,y,type) {
-  Obstacle.call(this,x,y,type);
+function Freeze(x,y,type,material) {
+  Obstacle.call(this,x,y,type,material);
   this.obstacleShape = new p2.Circle({ radius: 40});
   this.body.damaging = false;
   this.body.stunning = true;
@@ -91,8 +91,8 @@ function Freeze(x,y,type) {
   world.addBody(this.body);
 }
 
-function Saw(x,y,type) {
-  Obstacle.call(this,x,y,type);
+function Saw(x,y,type,material) {
+  Obstacle.call(this,x,y,type,material);
   setTimeout(function(saw) {
     if (!S.roundChanging) {
       saw.obstacleShape = new p2.Circle({ radius: 50});
@@ -126,7 +126,9 @@ function Block(count) {
     this.body = new p2.Body({
       mass: 0.1,
       position: [S.block.positions[count].x, S.block.positions[count].y],
-      velocity: [getRandomInt(-60,60), getRandomInt(-60,60)]
+      velocity: [getRandomInt(-1,1)*500, getRandomInt(-1,1)*500],
+      damping: 0,
+      angularDamping: 0
     });
     var boxShape = new p2.Box({width: S.block.width, height: S.block.height});
     this.body.addShape(boxShape); 
@@ -136,7 +138,6 @@ function Block(count) {
     this.blockNumber = count;
     this.hp = 20;
     this.body.damaging = true;
-    this.body.inertia = 0;
     this.name = S.block.names[count];
     this.constrainVelocity = function(maxVelocity) {
       //constraints the block's velocity to a specific number
@@ -172,11 +173,28 @@ var world = new p2.World({
   gravity: [0,0]
 });
 
+world.defaultContactMaterial.friction = 0;
+world.defaultContactMaterial.restitution = 1;
+/*world.obstacleMaterial = new p2.Material();
+world.blockMaterial = new p2.Material();
+var obstacleBlockContactMaterial = new p2.ContactMaterial(world.obstacleMaterial, world.blockMaterial, {
+      friction : 0.03,
+      restitution: 1
+});
+var blockBlockContactMaterial = new p2.ContactMaterial(world.blockMaterial, world.blockMaterial, {
+      friction : 0.03,
+      restitution: 1
+});
+console.log(obstacleBlockContactMaterial);
+world.addContactMaterial(obstacleBlockContactMaterial);
+world.addContactMaterial(blockBlockContactMaterial);*/
 world.blocks = [];
 world.deadBlocks = [];
 world.removeBodies = [];
 for (i = 0; i < 4; i++) {
   world.blocks[i] = new Block(i);
+  //world.blocks[i].constrainVelocity(S.block.velocityConstant);
+  //world.blocks[i].body.material = world.blockMaterial;
 }
 world.blocks.positions = [];
 world.blocks.velocities = [];
@@ -211,12 +229,16 @@ left.damaging = true;
 right.damaging = true;
 floor.damaging = true;
 ceiling.damaging = true;
+/*left.material = world.obstacleMaterial;
+right.material = world.obstacleMaterial;
+floor.material = world.obstacleMaterial;
+ceiling.material = world.obstacleMaterial;*/
 world.addBody(left);
 world.addBody(right);
 world.addBody(floor);
 world.addBody(ceiling);
 
-var fixedTimeStep = 1 / 100; // seconds
+var fixedTimeStep = 1/100; // seconds
 
 setInterval(function(){
   // Move bodies forward in time
@@ -257,6 +279,7 @@ world.on('postStep', function() {
       deadBlocks: world.deadBlocks,
       obstacles: S.obstacleData
     });
+    //console.log(world.blocks.velocities[0]);
   }
 });
 
@@ -300,6 +323,7 @@ world.on('beginContact', function(evt) {
       bodyB.parent.stunned = true;
       setTimeout(function(stunnedBlock) {
         stunnedBlock.stunned = false;
+        stunnedBlock.constrainVelocity(S.block.velocityConstant);
       }, bodyA.parent.stunTime, bodyB.parent);
     }
   }

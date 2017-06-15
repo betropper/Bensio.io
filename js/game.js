@@ -123,7 +123,7 @@ function Block(game,x,y,color,frame) {
     /*this.body.x = x;
     this.body.y = y;*/
     //this.angle = angle * (180/Math.PI);
-    this.rotation = rotation;
+    this.angle = rotation*57.2958;
   }
   this.lose = function(condition) {
     this.dying = true;
@@ -420,8 +420,14 @@ class Load {
          }
         });
       }
-      //game.blocks.enableBody = true;
-      //game.blocks.physicsBodyType = Phaser.Physics.P2JS;
+      /*game.physics.startSystem(Phaser.Physics.P2JS);
+      game.physics.p2.damping = 0;
+      game.physics.p2.friction = 0;
+      game.physics.p2.angularDamping = 0;
+      game.physics.p2.restitution = 1;
+      game.physics.p2.enable(game.blocks);
+      game.blocks.enableBody = true;
+      game.blocks.physicsBodyType = Phaser.Physics.P2JS;*/
       game.blocks.positions = data.positions;
       game.blocks.velocities = data.velocities;
       game.blocks.deadBlocks = data.deadBlocks;
@@ -492,8 +498,7 @@ class MainMenu {
           //lastBlock.body.velocity.x = game.blocks.velocities[i][0];
           //lastBlock.body.velocity.y = game.blocks.velocities[i][1];
           //Commented out to test. Uncomment later.
-          /*
-          lastBlock.body.angularDamping = 0;
+          /*lastBlock.body.angularDamping = 0;
           lastBlock.body.damping = 0;
           lastBlock.body.mass = 0.1;*/
       }
@@ -530,16 +535,16 @@ class MainMenu {
                 game.localObstacles.splice(i,1);
               }
             };
-          /*for (i = 0; i < game.localObstacles.length; i++) {
-            if (!game.localObstacles[i] || !game.localObstacles[i].alive) {
-              game.localObstacles.splice(i,1);
-            }
-          }*/
         }
         //game.blocks.children[i].x = data.positions[i][0];
         //game.blocks.children[i].y = data.positions[i][1];
-        //game.blocks.children[i].body.velocity.x = data.velocities[i][0];
-        //game.blocks.children[i].body.velocity.y = data.velocities[i][1];
+
+        /*for (i = 0; i < game.blocks.children.length; i++ ) {
+          if (game.blocks.children[i]) {
+            game.blocks.children[i].body.velocity.x = data.velocities[i][0];
+            game.blocks.children[i].body.velocity.y = data.velocities[i][1];
+          }
+        }*/
       }
     });
     game.bensioTitle = game.add.text(game.world.centerX,game.world.centerY - 200,"bensio",C.text.style);
