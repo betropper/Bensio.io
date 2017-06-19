@@ -19,6 +19,7 @@ function compareSets(a1, a2) {
   }
 }
 
+
 var C = {
   game: {
     //width: window.innerWidth * window.devicePixelRatio,
@@ -63,7 +64,7 @@ var C = {
   block: {
     width: 72,
     height: 72,
-    velocity: 30,
+    velocity: 70,
     assets: {
       "red": "assets/redsquare.png",
       "blue": "assets/bluesquare.png",
@@ -94,13 +95,13 @@ function Block(game,x,y,color,frame) {
   this.anchor.setTo(.5);
   //game.physics.p2.enable(this);
   //this.body.setCollisionGroup(C.block.blockCollisionGroup);
-  //this.body.collideWorldBounds = true;
-  //this.body.friction = 0;
-  //this.body.restitution = 1;
+  this.body.collideWorldBounds = true;
+  this.body.friction = 0;
+  this.body.restitution = 1;
   //this.body.velocity.x = velocityX;
   //this.body.velocity.y = velocityY;
   this.filters = [game.blurX, game.blurY];
-  /*this.constrainVelocity = function(maxVelocity) {
+  this.constrainVelocity = function(maxVelocity) {
     //constraints the block's velocity to a specific number
     var body = this.body;
     var angle, currVelocitySqr, vx, vy;
@@ -116,14 +117,14 @@ function Block(game,x,y,color,frame) {
       
     body.data.velocity[0] = vx;
     body.data.velocity[1] = vy;
-  };*/
-  this.syncBlock = function(x,y,rotation) {
-    this.x = x + C.game.width/2;
-    this.y = y + C.game.height/2;
+  };
+  this.syncBlock = function(x,y,angle) {
+    this.body.x = x + C.game.width/2;
+    this.body.y = y + C.game.height/2;
     /*this.body.x = x;
     this.body.y = y;*/
-    //this.angle = angle * (180/Math.PI);
-    this.angle = rotation*57.2958;
+    this.body.angle = angle * (180/Math.PI);
+    //this.rotation = rotation;
   }
   this.lose = function(condition) {
     this.dying = true;
@@ -136,7 +137,7 @@ function Block(game,x,y,color,frame) {
 Block.prototype = Object.create(Phaser.Sprite.prototype);
 Block.prototype.constructor = Block;
 Block.prototype.update = function() {
-    //this.constrainVelocity(C.block.velocity);
+    this.constrainVelocity(C.block.velocity);
     if (this.dying) {
       this.angle += 10;
       this.alpha -= .05;
@@ -392,17 +393,40 @@ class Load {
       game.clickCount.anchor.setTo(.5);
       game.stage.disableVisibilityChange = true; 
       // Add physics
-      /*
-      game.world.setBounds(0, 0, C.game.width, C.game.height);
+      /*game.world.setBounds(0, 0, C.game.width, C.game.height);
       game.physics.startSystem(Phaser.Physics.P2JS);
-      game.physics.p2.setBoundsToWorld(true, true, true, true, true);
-      game.physics.p2.setImpactEvents(true);
-      C.block.blockCollisionGroup = game.physics.p2.createCollisionGroup(); 
-      game.physics.p2.updateBoundsCollisionGroup();
-      game.physics.p2.damping = 0;
-      game.physics.p2.friction = 0;
-      game.physics.p2.angularDamping = 0;
-      game.physics.p2.restitution = 1;*/
+      game.world.customBounds = { left: null, right: null, top: null, bottom: null };
+      game.world.createPreviewBounds = function(x, y, w, h) {
+        var sim = game.physics.p2;
+        //  If you want to use your own collision group then set it here and un-comment the lines below
+        var mask = sim.boundsCollisionGroup.mask;
+
+        game.world.customBounds.left = new p2.Body({ mass: 0, position: [ sim.pxmi(x), sim.pxmi(y) ], angle: 1.5707963267948966 });
+        game.world.customBounds.left.addShape(new p2.Plane());
+        // game.world.customBounds.left.shapes[0].collisionGroup = mask;
+
+        game.world.customBounds.right = new p2.Body({ mass: 0, position: [ sim.pxmi(x + w), sim.pxmi(y) ], angle: -1.5707963267948966 });
+        game.world.customBounds.right.addShape(new p2.Plane());
+        // game.world.customBounds.right.shapes[0].collisionGroup = mask;
+
+        game.world.customBounds.top = new p2.Body({ mass: 0, position: [ sim.pxmi(x), sim.pxmi(y) ], angle: -3.141592653589793 });
+        game.world.customBounds.top.addShape(new p2.Plane());
+        // game.world.customBounds.top.shapes[0].collisionGroup = mask;
+
+        game.world.customBounds.bottom = new p2.Body({ mass: 0, position: [ sim.pxmi(x), sim.pxmi(y + h) ] });
+        game.world.customBounds.bottom.addShape(new p2.Plane());
+        // game.world.customBounds.bottom.shapes[0].collisionGroup = mask;
+
+        sim.world.addBody(game.world.customBounds.left);
+        sim.world.addBody(game.world.customBounds.right);
+        sim.world.addBody(game.world.customBounds.top);
+        sim.world.addBody(game.world.customBounds.bottom);
+      }*/
+      // game.world.createPreviewBounds(115,0,1050,950);
+      //game.physics.p2.setBoundsToWorld(true, true, true, true, true);
+      //game.physics.p2.setImpactEvents(true);
+      //C.block.blockCollisionGroup = game.physics.p2.createCollisionGroup(); 
+      //game.physics.p2.updateBoundsCollisionGroup();
       //create blocks
 
       if (!game.blocks) {
@@ -427,10 +451,10 @@ class Load {
       game.physics.p2.restitution = 1;
       game.physics.p2.enable(game.blocks);
       game.blocks.enableBody = true;
-      game.blocks.physicsBodyType = Phaser.Physics.P2JS;*/
+      game.blocks.physicsBodyType = Phaser.Physics.P2JS;
       game.blocks.positions = data.positions;
       game.blocks.velocities = data.velocities;
-      game.blocks.deadBlocks = data.deadBlocks;
+      game.blocks.deadBlocks = data.deadBlocks;*/
       /*game.obstacles.forEach(function(obstacle) {
         obstacle.clean()
       });*/
