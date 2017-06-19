@@ -118,13 +118,13 @@ function Block(game,x,y,color,frame) {
     body.data.velocity[0] = vx;
     body.data.velocity[1] = vy;
   };
-  this.syncBlock = function(x,y,angle) {
-    this.body.x = x + C.game.width/2;
-    this.body.y = y + C.game.height/2;
+  this.syncBlock = function(x,y,rotation) {
+    this.x = x + C.game.width/2;
+    this.y = y + C.game.height/2;
     /*this.body.x = x;
     this.body.y = y;*/
-    this.body.angle = angle * (180/Math.PI);
-    //this.rotation = rotation;
+    //this.body.angle = angle * (180/Math.PI);
+    this.rotation = rotation;
   }
   this.lose = function(condition) {
     this.dying = true;
