@@ -126,7 +126,7 @@ function Block(count) {
     this.body = new p2.Body({
       mass: 0.1,
       position: [S.block.positions[count].x, S.block.positions[count].y],
-      velocity: [getRandomInt(-1,1)*500, getRandomInt(-1,1)*500],
+      velocity: [getRandomInt(-60,60), getRandomInt(-60,60)],
       damping: 0,
       angularDamping: 0
     });
@@ -257,7 +257,7 @@ world.on('postStep', function() {
   world.blocks.forEach(function(block) {
     if (block.hp > 0) {
       //console.log(world.blocks[0].body.velocity[1]);
-      if (!block.stunned) {
+      if (!block.stunned && !world.stunned) {
         block.constrainVelocity(S.block.velocityConstant);
       } else {
         block.constrainVelocity(0);
@@ -272,7 +272,7 @@ world.on('postStep', function() {
     setTimeout(changeRound, 3000);
     S.roundChanging = true;
   } else {
-    io.emit('worldTick',{
+      io.emit('worldTick',{
       positions: world.blocks.positions,
       angles: world.blocks.angles,
       velocities: world.blocks.velocities,
@@ -406,5 +406,8 @@ var changeRound = function() {
     angles: world.blocks.angles,
     velocities: world.blocks.velocities
   });
+  world.stunned = true;
+  setTimeout(function(world) {
+    world.stunned = false;
+  }, 10000, world);
 }
-

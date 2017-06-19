@@ -95,13 +95,13 @@ function Block(game,x,y,color,frame) {
   this.anchor.setTo(.5);
   //game.physics.p2.enable(this);
   //this.body.setCollisionGroup(C.block.blockCollisionGroup);
-  this.body.collideWorldBounds = true;
-  this.body.friction = 0;
-  this.body.restitution = 1;
+  //this.body.collideWorldBounds = true;
+  //this.body.friction = 0;
+  //this.body.restitution = 1;
   //this.body.velocity.x = velocityX;
   //this.body.velocity.y = velocityY;
   this.filters = [game.blurX, game.blurY];
-  this.constrainVelocity = function(maxVelocity) {
+  /*this.constrainVelocity = function(maxVelocity) {
     //constraints the block's velocity to a specific number
     var body = this.body;
     var angle, currVelocitySqr, vx, vy;
@@ -117,7 +117,7 @@ function Block(game,x,y,color,frame) {
       
     body.data.velocity[0] = vx;
     body.data.velocity[1] = vy;
-  };
+  };*/
   this.syncBlock = function(x,y,rotation) {
     this.x = x + C.game.width/2;
     this.y = y + C.game.height/2;
@@ -137,7 +137,7 @@ function Block(game,x,y,color,frame) {
 Block.prototype = Object.create(Phaser.Sprite.prototype);
 Block.prototype.constructor = Block;
 Block.prototype.update = function() {
-    this.constrainVelocity(C.block.velocity);
+    //this.constrainVelocity(C.block.velocity);
     if (this.dying) {
       this.angle += 10;
       this.alpha -= .05;
@@ -451,10 +451,10 @@ class Load {
       game.physics.p2.restitution = 1;
       game.physics.p2.enable(game.blocks);
       game.blocks.enableBody = true;
-      game.blocks.physicsBodyType = Phaser.Physics.P2JS;
+      game.blocks.physicsBodyType = Phaser.Physics.P2JS;*/
       game.blocks.positions = data.positions;
       game.blocks.velocities = data.velocities;
-      game.blocks.deadBlocks = data.deadBlocks;*/
+      game.blocks.deadBlocks = data.deadBlocks;
       /*game.obstacles.forEach(function(obstacle) {
         obstacle.clean()
       });*/
