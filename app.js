@@ -401,6 +401,7 @@ var changeRound = function() {
   var newbg = S.bgs[Math.floor(Math.random() * S.bgs.length)];
   world.blocks.forEach(function(block) {
     block.body.angularVelocity = 0;
+    block.body.angle = 0;
     block.revive();
   });
   io.emit('newRound',{
@@ -410,7 +411,6 @@ var changeRound = function() {
     velocities: world.blocks.velocities
   });
   world.stunned = true;
-  block.body.angle = 0;
   setTimeout(function(world) {
     world.stunned = false;
     io.sockets.emit('bettingFinished');
