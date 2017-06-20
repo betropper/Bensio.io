@@ -25,8 +25,8 @@ var C = {
     //width: window.innerWidth * window.devicePixelRatio,
     //height: window.innerHeight * window.devicePixelRatio,
     width: 1280,
-    height: 920,
-    number: ''
+    height: 920
+    //number: ''
   },
   text: {
     style: {
@@ -412,8 +412,8 @@ class Load {
     game.socket.on('firstMessage',function(data) {
       game.bg = new Background(data.bg);
       C.game.number = data.number;
-      game.clickCount = game.add.text(game.world.centerX,game.world.centerY,C.game.number,C.text.style);
-      game.clickCount.anchor.setTo(.5);
+      //game.clickCount = game.add.text(game.world.centerX,game.world.centerY,C.game.number,C.text.style);
+      //game.clickCount.anchor.setTo(.5);
       game.stage.disableVisibilityChange = true; 
       // Add physics
       /*game.world.setBounds(0, 0, C.game.width, C.game.height);
@@ -489,7 +489,7 @@ class Load {
           new Obstacle(game,data.x+C.game.width/2,data.y+C.game.height/2,obstacle.type);
         }
       });*/
-      game.clickCount.kill();
+      //game.clickCount.kill();
       game.loadingText.destroy();
       if (game.state.current == "Load") {
         game.state.start('MainMenu',false);
@@ -519,10 +519,10 @@ class MainMenu {
       });*/
       game.bg.changeBackground(data.bg);
     });
-    game.socket.on('numberChanged',function(number) {
+    /*game.socket.on('numberChanged',function(number) {
       C.game.number = number;
       game.clickCount.text = number.toString();
-    });
+    });*/
   }
   create() {
     //game.bg.sprite.filters = [];
@@ -632,7 +632,7 @@ class Play {
     });
     console.log("Did it!");
     game.clear();
-    game.clickCount.revive();
+    //game.clickCount.revive();
     game.offensiveSpawners.forEach(function(spawner) {
       spawner.inputEnabled = true;
     });
@@ -640,9 +640,6 @@ class Play {
       spawner.inputEnabled = true;
     });
     //Deal with socket messages.
-    this.input.onTap.add(function() {
-      game.socket.emit('bet', {player: C.player.name});
-    },this);
   }
 }
 
