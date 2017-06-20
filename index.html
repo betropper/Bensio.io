@@ -10,7 +10,7 @@
       body {
         background: black;
         color: white;
-        font-family: sans-serif;
+        font-family: 'Montserrat';
         padding: 0px;
         margin: 0px; 
       }
@@ -30,6 +30,11 @@
           0%   {bottom: -20%;}
           100% {bottom: 10%;}
       }
+      div p {
+        position: relative;
+        bottom: -80%;
+        background-color:black;
+      }
     </style>
   </head>
 
@@ -37,7 +42,47 @@
     <script src="https://apis.google.com/js/platform.js" async defer></script>
     <meta name="google-signin-client_id" content="1059212892170-025b6gqce44nra0o71rj2mikokrciaie.apps.googleusercontent.com">
     <div id="signInButton" class="g-signin2" data-onsuccess="onSignIn" style="position:absolute;bottom:-20%;left:50%;transform: translate(-50%,-50%);"></div>
+    <div id = "signOutButton" onclick = "signOut();" style="width:96px;height:96px;position:absolute;bottom:-20%;left:50%;transform: translate(-50%,-50%);text-align:center;"><p>Sign Out<p></div>
     <script>
+      var signedIn;
+      //var localGoogleProfile;
+      function onSignIn(googleUser) {
+        console.log(game);
+        //var localGoogleProfile = googleUser;
+        var profile = googleUser.getBasicProfile();
+        var signedIn = true;
+        game.socket.emit('googleSignIn', {googleProfile: googleUser});
+        /*console.log('ID: ' + profile.getId()); // Do not send to your backend! Use an ID token instead.
+        console.log('Name: ' + profile.getName());
+        console.log('Image URL: ' + profile.getImageUrl());
+        console.log('Email: ' + profile.getEmail());*/ // This is null if the 'email' scope is not present.
+        document.getElementById("signInButton").style["bottom"] = "-20%";
+        document.getElementById("signInButton").style["animation-name"] = "";
+        document.getElementById("signInButton").style["animation-duration"] = "";
+        document.getElementById("signInButton").style["visibility"] = "hidden";
+        document.getElementById("signOutButton").style["animation-name"] = "flyIn";
+        document.getElementById("signOutButton").style["animation-duration"] = "2s";
+        document.getElementById("signOutButton").style["bottom"] = "10%";
+        document.getElementById("signOutButton").style["background-image"] = "url(" + profile.getImageUrl() + ")";
+        document.getElementById("signOutButton").style["visibility"] = "visible";
+      }
+
+      function signOut() {
+        var auth2 = gapi.auth2.getAuthInstance();
+        auth2.signOut().then(function () {
+          console.log('User signed out.');
+        });
+        var signedIn = false;
+        document.getElementById("signInButton").style["animation-name"] = "flyIn";
+        document.getElementById("signInButton").style["animation-duration"] = "2s";
+        document.getElementById("signInButton").style["bottom"] = "10%";
+        document.getElementById("signInButton").style["visibility"] = "visible";
+        document.getElementById("signOutButton").style["bottom"] = "-20%";
+        document.getElementById("signOutButton").style["animation-name"] = "";
+        document.getElementById("signOutButton").style["animation-duration"] = "";
+        document.getElementById("signOutButton").style["visibility"] = "hidden";
+      }
+
       Element.prototype.remove = function() {
           this.parentElement.removeChild(this);
       }

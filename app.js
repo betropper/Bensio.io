@@ -1,4 +1,3 @@
-
 var express = require('express');
 var app = express();
 var http = require('http').Server(app);
@@ -242,7 +241,6 @@ var fixedTimeStep = 1/100; // seconds
 
 setInterval(function(){
   // Move bodies forward in time
-  
   world.step(fixedTimeStep);
 
 }, 1000*fixedTimeStep);
@@ -259,6 +257,8 @@ world.on('postStep', function() {
       //console.log(world.blocks[0].body.velocity[1]);
       if (!block.stunned && !world.stunned) {
         block.constrainVelocity(S.block.velocityConstant);
+      } else if (world.stunned) {
+        block.constrainVelocity(0);
       } else {
         block.constrainVelocity(0);
       }
@@ -277,7 +277,8 @@ world.on('postStep', function() {
       angles: world.blocks.angles,
       velocities: world.blocks.velocities,
       deadBlocks: world.deadBlocks,
-      obstacles: S.obstacleData
+      obstacles: S.obstacleData,
+      paused: world.stunned
     });
     //console.log(world.blocks.velocities[0]);
   }
@@ -340,7 +341,8 @@ io.sockets.on('connection', function(socket) {
     positions: world.blocks.positions,
     angles: world.blocks.angles,
     velocities: world.blocks.velocities,
-    deadBlocks: world.deadBlocks
+    deadBlocks: world.deadBlocks,
+    paused: world.stunned
   });
   socket.on('bet', function(data) {
     if (data.player) {
@@ -398,6 +400,7 @@ var changeRound = function() {
   S.obstacleData = [];
   var newbg = S.bgs[Math.floor(Math.random() * S.bgs.length)];
   world.blocks.forEach(function(block) {
+    block.body.angularVelocity = 0;
     block.revive();
   });
   io.emit('newRound',{
@@ -407,7 +410,12 @@ var changeRound = function() {
     velocities: world.blocks.velocities
   });
   world.stunned = true;
+  block.body.angle = 0;
   setTimeout(function(world) {
     world.stunned = false;
+    io.sockets.emit('bettingFinished');
+    world.blocks.forEach(function(block) {
+      block.body.velocity = [getRandomInt(-60,60), getRandomInt(-60,60)]; 
+    });
   }, 10000, world);
 }

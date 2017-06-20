@@ -126,6 +126,25 @@ function Block(game,x,y,color,frame) {
     //this.body.angle = angle * (180/Math.PI);
     this.rotation = rotation;
   }
+  this.enableBetting = function(state) {
+    if (state == true) {
+      this.inputEnabled = true;
+      this.bettingEnabled = true;
+      if (!this.hoverTween) {
+        this.events.onInputOver.add(function() {
+          this.hoverTween = game.add.tween(this.scale).to({x: 1.5, y: 1.5}, 250, Phaser.Easing.Linear.None, false, 0, true, true);
+          this.hoverTween.start(); 
+        }, this);
+        this.events.onInputOut.add(function() {
+          this.hoverTween.stop();
+          this.scale.setTo(1);
+        }, this);
+      }
+    } else {
+      this.inputEnabled = false;
+      this.bettingEnabled = false;
+    }
+  }
   this.lose = function(condition) {
     this.dying = true;
   }
@@ -477,14 +496,17 @@ class Load {
 
 class MainMenu {
   preload() {
-   document.getElementById("signInButton").style["animation-name"] = "flyIn";
-   document.getElementById("signInButton").style["animation-duration"] = "2s";
-   document.getElementById("signInButton").style["bottom"] = "10%";
+    if (document.getElementById("signInButton") && !signedIn) {
+      document.getElementById("signInButton").style["animation-name"] = "flyIn";
+      document.getElementById("signInButton").style["animation-duration"] = "2s";
+      document.getElementById("signInButton").style["bottom"] = "10%";
+    }
     game.socket.on('newRound', function(data) {
       console.log('Round over.');
       game.blocks.forEach(function(block) {
         if (!block.alive) {
           block.revive();
+          //block.enableBetting(true);
           game.world.bringToTop(block);
         }
       });
@@ -539,6 +561,11 @@ class MainMenu {
           game.blocks.deadBlocks = data.deadBlocks;
         } else if (game.blocks.children[i].alive) {
           game.blocks.children[i].syncBlock(data.positions[i][0], data.positions[i][1],data.angles[i]);
+          if (data.paused && !game.blocks.children[i].bettingEnabled) {
+            game.blocks.children[i].enableBetting(true);
+          } else if (game.blocks.children[i].bettingEnabled) {
+            game.blocks.children[i].enableBetting(false);
+          }
         }
         var tempDataObstacles = convertSet(data.obstacles);
         var tempLocalObstacles = convertSet(game.localObstacles);
@@ -583,7 +610,12 @@ class MainMenu {
       sessionStorage.setItem('userName', C.player.name);
       game.socket.emit('nameRegistered', C.player.name);
       input.destroy();
-      document.getElementById("signInButton").remove();
+      if (document.getElementById("signInButton")) {
+        document.getElementById("signInButton").remove();
+      }
+      if (document.getElementById("signOutButton")) {
+        document.getElementById("signOutButton").remove();
+      }
       game.state.start('Play',false);
     });
   }
@@ -640,7 +672,6 @@ function Background(currentkey) {
   this.sprite.filters = [game.blurX, game.blurY];
 
 }
-
 
 
 var game = new Phaser.Game(C.game.width, C.game.height);
