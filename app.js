@@ -27,7 +27,7 @@ var S = {
     width: 1050,
     height: 920
   },
-  testnumber: 0,
+  //testnumber: 0,
   roundChanging: false,
   online: {},
   registeredNames: [],
@@ -47,7 +47,8 @@ var S = {
   },
   obstacles: [],
   obstacleData: [],
-  obstacleCount: 0
+  obstacleCount: 0,
+  winner: ''
 }
 function Obstacle(x,y,type,material) {
   this.type = type;
@@ -268,7 +269,13 @@ world.on('postStep', function() {
     }
   });
   //console.log(world.blocks[0].body.position[0],world.blocks[0].body.velocity[0]);
-  if (world.deadBlocks.length >= world.blocks.length && !S.roundChanging) {
+  if (world.deadBlocks.length+1 >= world.blocks.length && !S.roundChanging) {
+    for (i = 0; i < world.blocks.length; i++) {
+      if (world.blocks[i].hp > 0) {
+        S.winner = world.blocks[i].name;
+        break;
+      }
+    }
     setTimeout(changeRound, 3000);
     S.roundChanging = true;
   } else {
@@ -335,7 +342,7 @@ io.sockets.on('connection', function(socket) {
   console.log('A player has connected.');
   console.log(socket.id);
   socket.emit('firstMessage', {
-    number: S.testnumber,
+    //number: S.testnumber,
     online: S.online,
     bg: S.currentbg,
     positions: world.blocks.positions,
@@ -345,10 +352,9 @@ io.sockets.on('connection', function(socket) {
     paused: world.stunned
   });
   socket.on('bet', function(data) {
-    if (data.player) {
+    if (S.online[socket.id] && data.player && data.color && world.stunned) {
       console.log(data.player + ' has placed a bet.');
-      S.testnumber++
-      io.sockets.emit('numberChanged', S.testnumber);
+      S.online[socket.id].bettingOn = data.color;
     }
   });
   socket.on('obstacleBought', function(data) {
@@ -393,6 +399,14 @@ io.sockets.on('connection', function(socket) {
 
 var changeRound = function() {
   S.roundChanging = false;
+  console.log(S.winner);
+  Object.keys(S.online).forEach(function(playerId) {
+    if (S.online[playerId].bettingOn && S.online[playerId].bettingOn == S.winner) {
+      S.online[playerId].buxio += 10;
+      console.log(S.online[playerId].name + " just won! Total Buxio:",S.online[playerId].buxio);
+      delete S.online[playerId].bettingOn;
+    }
+  });
   for (i = S.obstacles.length-1; i >= 0; i--) {
     S.obstacles[i].die();
   };
@@ -406,12 +420,10 @@ var changeRound = function() {
   });
   io.emit('newRound',{
     bg: newbg,
-    positions: world.blocks.positions,
-    angles: world.blocks.angles,
-    velocities: world.blocks.velocities
   });
   world.stunned = true;
   setTimeout(function(world) {
+    S.winner = '';
     world.stunned = false;
     io.sockets.emit('bettingFinished');
     world.blocks.forEach(function(block) {

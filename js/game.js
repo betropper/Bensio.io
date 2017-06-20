@@ -130,19 +130,21 @@ function Block(game,x,y,color,frame) {
     if (state == true) {
       this.inputEnabled = true;
       this.bettingEnabled = true;
-      if (!this.hoverTween) {
-        this.events.onInputOver.add(function() {
-          this.hoverTween = game.add.tween(this.scale).to({x: 1.5, y: 1.5}, 250, Phaser.Easing.Linear.None, false, 0, true, true);
-          this.hoverTween.start(); 
-        }, this);
-        this.events.onInputOut.add(function() {
-          this.hoverTween.stop();
-          this.scale.setTo(1);
-        }, this);
-      }
+      this.events.onInputUp.add(function() {
+        game.socket.emit('bet', {player: C.player.name, color: this.key});
+      },this);
+      this.events.onInputOver.add(function() {
+        this.hoverTween = game.add.tween(this.scale).to({x: 1.5, y: 1.5}, 250, Phaser.Easing.Linear.None, true, 0, -1, true);
+      }, this);
+      this.events.onInputOut.add(function() {
+        this.hoverTween.stop();
+        this.scale.setTo(1);
+      }, this);
     } else {
       this.inputEnabled = false;
       this.bettingEnabled = false;
+      this.events.onInputOver._bindings = [];
+      this.events.onInputOut._bindings = [];
       if (this.hoverTween) {
         this.hoverTween.stop();
         this.scale.setTo(1);
@@ -567,7 +569,7 @@ class MainMenu {
           game.blocks.children[i].syncBlock(data.positions[i][0], data.positions[i][1],data.angles[i]);
           if (data.paused && !game.blocks.children[i].bettingEnabled) {
             game.blocks.children[i].enableBetting(true);
-          } else if (game.blocks.children[i].bettingEnabled) {
+          } else if (!data.paused && game.blocks.children[i].bettingEnabled) {
             game.blocks.children[i].enableBetting(false);
           }
         }
