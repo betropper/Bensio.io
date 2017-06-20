@@ -143,6 +143,10 @@ function Block(game,x,y,color,frame) {
     } else {
       this.inputEnabled = false;
       this.bettingEnabled = false;
+      if (this.hoverTween) {
+        this.hoverTween.stop();
+        this.scale.setTo(1);
+      }
     }
   }
   this.lose = function(condition) {
