@@ -19,7 +19,6 @@ function compareSets(a1, a2) {
   }
 }
 
-
 var C = {
   game: {
     //width: window.innerWidth * window.devicePixelRatio,
@@ -127,27 +126,43 @@ function Block(game,x,y,color,frame) {
     this.rotation = rotation;
   }
   this.enableBetting = function(state) {
-    if (state == true) {
-      this.inputEnabled = true;
-      this.bettingEnabled = true;
-      this.events.onInputUp.add(function() {
-        game.socket.emit('bet', {player: C.player.name, color: this.key});
-      },this);
-      this.events.onInputOver.add(function() {
-        this.hoverTween = game.add.tween(this.scale).to({x: 1.5, y: 1.5}, 250, Phaser.Easing.Linear.None, true, 0, -1, true);
-      }, this);
-      this.events.onInputOut.add(function() {
-        this.hoverTween.stop();
-        this.scale.setTo(1);
-      }, this);
-    } else {
-      this.inputEnabled = false;
-      this.bettingEnabled = false;
-      this.events.onInputOver._bindings = [];
-      this.events.onInputOut._bindings = [];
-      if (this.hoverTween) {
-        this.hoverTween.stop();
-        this.scale.setTo(1);
+    if (game.state.current == "Play") {
+      if (state == true) {
+        if (!this.alive) {
+          this.revive();
+        }
+        if (!game.bensioTitle.betStateTween) {
+          game.bensioTitle.text = "Click on a block to join its team."
+          game.bensioTitle.betStateTween = game.add.tween(game.bensioTitle).to({y: game.world.centerY, alpha: 1}, 1000, Phaser.Easing.Linear.None, true)
+        }
+        this.inputEnabled = true;
+        this.bettingEnabled = true;
+        this.events.onInputUp.add(function() {
+          game.socket.emit('bet', {player: C.player.name, color: this.key});
+        },this);
+        this.events.onInputOver.add(function() {
+          this.hoverTween = game.add.tween(this.scale).to({x: 1.5, y: 1.5}, 400, Phaser.Easing.Linear.None, true, 0, -1, true);
+        }, this);
+        this.events.onInputOut.add(function() {
+          this.hoverTween.stop();
+          this.scale.setTo(1);
+        }, this);
+      } else {
+        if (game.bensioTitle.betStateTween) {
+          game.bensioTitle.betStateTween.stop();
+          game.bensioTitle.betStateTween = undefined;
+        }
+        game.bensioTitle.alpha = 0;
+        game.bensioTitle.text = "bensio"
+        game.bensioTitle.y = game.world.centerY - 200
+        this.inputEnabled = false;
+        this.bettingEnabled = false;
+        this.events.onInputOver._bindings = [];
+        this.events.onInputOut._bindings = [];
+        if (this.hoverTween) {
+          this.hoverTween.stop();
+          this.scale.setTo(1);
+        }
       }
     }
   }
@@ -633,6 +648,7 @@ class Play {
       block.revive();
     });
     console.log("Did it!");
+    game.bensioTitle.alpha = 0;
     game.clear();
     //game.clickCount.revive();
     game.offensiveSpawners.forEach(function(spawner) {

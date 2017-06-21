@@ -358,7 +358,7 @@ io.sockets.on('connection', function(socket) {
     }
   });
   socket.on('obstacleBought', function(data) {
-    if (S.online[socket.id]) {
+    if (S.online[socket.id] && !world.stunned) {
       console.log(data.player + ' has placed a ' + data.obstacle  + '.');
       spawnObstacle(data.x,data.y,data.obstacle,socket.id);
       //io.sockets.emit('obstaclePlaced', {x: data.x, y: data.y, obstacle: newestObstacle});
