@@ -131,6 +131,7 @@ function Block(game,x,y,color,frame) {
         if (!this.alive) {
           this.revive();
         }
+        //this.filters.push(new PIXI.filters.GlowFilter(100, 100, 50, 500, 50, 0x008080));
         if (!game.bensioTitle.betStateTween) {
           game.bensioTitle.text = "Click on a block to join its team."
           game.bensioTitle.betStateTween = game.add.tween(game.bensioTitle).to({y: game.world.centerY, alpha: 1}, 1000, Phaser.Easing.Linear.None, true)
@@ -138,6 +139,10 @@ function Block(game,x,y,color,frame) {
         this.inputEnabled = true;
         this.bettingEnabled = true;
         this.events.onInputUp.add(function() {
+          for (i = 0; i < game.blocks.children.length; i++) {
+            game.blocks.children[i].tint = 0xffffff;
+          }
+          this.tint = 0x686868;
           game.socket.emit('bet', {player: C.player.name, color: this.key});
         },this);
         this.events.onInputOver.add(function() {
@@ -151,6 +156,9 @@ function Block(game,x,y,color,frame) {
         if (game.bensioTitle.betStateTween) {
           game.bensioTitle.betStateTween.stop();
           game.bensioTitle.betStateTween = undefined;
+        }
+        for (i = 0; i < game.blocks.children.length; i++) {
+          game.blocks.children[i].tint = 0xffffff;
         }
         game.bensioTitle.alpha = 0;
         game.bensioTitle.text = "bensio"
@@ -376,6 +384,8 @@ class Boot {
     game.load.script('filterX', '../filters/BlurX.js');
     //game.load.script('filterY', 'https://cdn.rawgit.com/photonstorm/phaser/master/filters/BlurY.js');
     game.load.script('filterY', '../filters/BlurY.js');
+    //game.load.script('grayfilter', '../filters/Gray.js');
+    //game.load.script('glowFilter', '../filters/glow/GlowFilter.js');
     //console.log("%c||| Bootin' Bensio |||","color:#fdf6e3; background:#073642");
     /*We've gotten data. Do something with it.
       console.log(data);
@@ -574,8 +584,11 @@ class MainMenu {
       var dyingBlock = game.blocks[block.number];
       dyingBlock.kill();
     });
-    game.socket.on('worldTick',function(data) {
+    game.socket.on('worldTick',function(data) { 
       for (var i = 0; i < game.blocks.length; i++) {
+        if (data.paused) {
+          game.blocks.children[i].revive();
+        }
         //Include indexOf for IE later.
         if (data.deadBlocks && data.deadBlocks.indexOf(i) > -1 && game.blocks.children[i].alive) {
           game.blocks.children[i].lose();
