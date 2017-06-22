@@ -42,12 +42,11 @@
     <script src="https://apis.google.com/js/platform.js" async defer></script>
     <meta name="google-signin-client_id" content="1059212892170-025b6gqce44nra0o71rj2mikokrciaie.apps.googleusercontent.com">
     <div id="signInButton" class="g-signin2" data-onsuccess="onSignIn" style="position:absolute;bottom:-20%;left:50%;transform: translate(-50%,-50%);"></div>
-    <div id = "signOutButton" onclick = "signOut();" style="width:96px;height:96px;position:absolute;bottom:-20%;left:50%;transform: translate(-50%,-50%);text-align:center;"><p>Sign Out<p></div>
+    <div id = "signOutButton" onclick = "signOut();" style="visibility:hidden;width:96px;height:96px;position:absolute;bottom:10%;left:50%;transform: translate(-50%,-50%);text-align:center;"><p>Sign Out<p></div>
     <script>
       var signedIn;
       //var localGoogleProfile;
       function onSignIn(googleUser) {
-        console.log(game);
         //var localGoogleProfile = googleUser;
         var profile = googleUser.getBasicProfile();
         var signedIn = true;

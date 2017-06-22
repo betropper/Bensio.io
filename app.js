@@ -23,8 +23,8 @@ var S = {
   gameworld: {
     SCALE: 30,
     fps: 30,
-    //width: 1280,
-    width: 1050,
+    width: 1280,
+    //width: 1050,
     height: 920
   },
   //testnumber: 0,
@@ -363,7 +363,6 @@ io.sockets.on('connection', function(socket) {
       spawnObstacle(data.x,data.y,data.obstacle,socket.id);
       //io.sockets.emit('obstaclePlaced', {x: data.x, y: data.y, obstacle: newestObstacle});
       //io.to(socket.id).emit('obstacleVerified', newestObstacle.obstacleNumber);
-      //
     }
   });
   socket.on('nameRegistered', function(name) {

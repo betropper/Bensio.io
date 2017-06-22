@@ -50,7 +50,7 @@ var C = {
   },
   background: {
     width: 1280,
-    height: 920,
+    height: 1280,
     assets: {
       "stars": "assets/stars1.png",
       "west": "assets/west2.png",
@@ -78,11 +78,26 @@ var C = {
     offensive: ["Saw"],
     defensive: ["Wall","Freeze"],
     assets: {
-      "Wall": "assets/red-circle.png",
-      "Freeze": "assets/freeze.png",
-      "FreezeAura": "assets/freezeaura.png",
-      "Saw": "assets/sawbody.png",
-      "SawBlade": "assets/sawblade.png"
+      "Wall": {
+        source: "assets/red-circle.png",
+        scale: 1
+      },
+      "Freeze": {
+        source: "assets/freeze.png",
+        scale: .3
+      },
+      "FreezeAura": {
+        source: "assets/freezeaura.png",
+        scale: .2
+      },
+      "Saw": {
+        source: "assets/sawbody.png",
+        scale: .3
+      },
+      "SawBlade": {
+        source: "assets/sawblade.png",
+        scale: 1.2
+      }
     }
   }
 }
@@ -92,6 +107,7 @@ function Block(game,x,y,color,frame) {
   console.log(x,y,color,frame);
   Phaser.Sprite.call(this, game, x, y, color);
   this.anchor.setTo(.5);
+  //this.scale = game.bg.scale;
   //game.physics.p2.enable(this);
   //this.body.setCollisionGroup(C.block.blockCollisionGroup);
   //this.body.collideWorldBounds = true;
@@ -118,8 +134,10 @@ function Block(game,x,y,color,frame) {
     body.data.velocity[1] = vy;
   };*/
   this.syncBlock = function(x,y,rotation) {
-    this.x = x + C.game.width/2;
-    this.y = y + C.game.height/2;
+    //this.x = x + C.game.width/2;
+    //this.y = y + C.game.height/2;
+    this.x = x*game.bg.sprite.scale.x + game.width/2;
+    this.y = y*game.bg.sprite.scale.y + game.height/2;
     /*this.body.x = x;
     this.body.y = y;*/
     //this.body.angle = angle * (180/Math.PI);
@@ -146,11 +164,11 @@ function Block(game,x,y,color,frame) {
           game.socket.emit('bet', {player: C.player.name, color: this.key});
         },this);
         this.events.onInputOver.add(function() {
-          this.hoverTween = game.add.tween(this.scale).to({x: 1.5, y: 1.5}, 400, Phaser.Easing.Linear.None, true, 0, -1, true);
+          this.hoverTween = game.add.tween(this.scale).to({x: game.bg.sprite.scale.x*1.5, y: game.bg.sprite.scale.y*1.5}, 400, Phaser.Easing.Linear.None, true, 0, -1, true);
         }, this);
         this.events.onInputOut.add(function() {
           this.hoverTween.stop();
-          this.scale.setTo(1);
+          this.scale.setTo(game.bg.sprite.scale.x);
         }, this);
       } else {
         if (game.bensioTitle.betStateTween) {
@@ -161,15 +179,15 @@ function Block(game,x,y,color,frame) {
           game.blocks.children[i].tint = 0xffffff;
         }
         game.bensioTitle.alpha = 0;
-        game.bensioTitle.text = "bensio"
-        game.bensioTitle.y = game.world.centerY - 200
+        game.bensioTitle.text = "bensio";
+        game.bensioTitle.y = game.world.centerY - 200;
         this.inputEnabled = false;
         this.bettingEnabled = false;
         this.events.onInputOver._bindings = [];
         this.events.onInputOut._bindings = [];
         if (this.hoverTween) {
           this.hoverTween.stop();
-          this.scale.setTo(1);
+          this.scale.setTo(game.bg.sprite.scale.x);
         }
       }
     }
@@ -202,6 +220,7 @@ function ObstacleSpawner(game,x,y,type,frame) {
   Phaser.Sprite.call(this, game, x, y, type, frame);
   this.homeX = x;
   this.homeY = y;
+  this.type = type;
   this.anchor.setTo(.5);
   this.obstacleType = type;
   this.filters = [game.blurX, game.blurY];
@@ -215,11 +234,7 @@ function ObstacleSpawner(game,x,y,type,frame) {
     }*/
     var tempObst = game.add.sprite(this.x,this.y,type);
     tempObst.anchor.setTo(.5);
-    if (type == "Saw") {
-      tempObst.scale.setTo(.2);
-    } else if (type == "Freeze") {
-      tempObst.scale.setTo(.3);
-    }
+    tempObst.scale.setTo(C.obstacle.assets[type].scale*game.bg.sprite.scale.x);
     tempObst.lifespan = 100;
     /*game.time.events.add(Phaser.Timer.SECOND * .1, function() {
       this.destroy();
@@ -229,7 +244,7 @@ function ObstacleSpawner(game,x,y,type,frame) {
     } else {
       new Obstacle(game,this.x,this.y,type,frame);
   }*/
-    game.socket.emit('obstacleBought', {player: C.player.name, obstacle: this.obstacleType, x: this.x-C.game.width/2, y: this.y-C.game.height/2});
+    game.socket.emit('obstacleBought', {player: C.player.name, obstacle: this.obstacleType, x: this.x/game.bg.sprite.scale.x-game.width/2, y: this.y/game.bg.sprite.scale.y-game.height/2});
   }
   this.checkOutOfBounds = function() {
     if (this.x > C.game.width - 115 || this.x < 115 || this.y < 0 || this.y > C.game.height) {
@@ -244,37 +259,36 @@ function ObstacleSpawner(game,x,y,type,frame) {
   this.events.onDragStop.add(this.checkOutOfBounds,this);
   game.add.existing(this);
   //REMOVE THIS LATER THIS IS BAD CODE. RESIZE THE SPRITE INSTEAD.
-  if (type == "Saw") {
-    this.scale.setTo(.15);
-    this.events.onDragStart.add(function() {
-      this.scale.setTo(.2);
-    }, this);
-    this.events.onDragStop.add(function() {
-      this.scale.setTo(.15); 
-    }, this);
-  } else if (type == "Freeze") {
-    this.scale.setTo(.2);
-    this.events.onDragStart.add(function() {
-      this.scale.setTo(.3);
-    }, this);
-    this.events.onDragStop.add(function() {
-      this.scale.setTo(.2); 
-    }, this);
-  }
+  this.scale.setTo(C.obstacle.assets[type].scale*game.bg.sprite.scale.x);
+  this.events.onDragStart.add(function() {
+    this.scale.setTo(C.obstacle.assets[type].scale*game.bg.sprite.scale.x*1.5);
+  }, this);
+  this.events.onDragStop.add(function() {
+    this.scale.setTo(C.obstacle.assets[type].scale*game.bg.sprite.scale.x); 
+  }, this);
 }
 
 ObstacleSpawner.prototype = Object.create(Phaser.Sprite.prototype);
 ObstacleSpawner.prototype.constructor = ObstacleSpawner;
+ObstacleSpawner.prototype.update = function() {
+
+};
 
 function Obstacle(game,x,y,type,frame) {
   console.log(x,y,type,frame);
   Phaser.Sprite.call(this, game, x, y, type);
   this.anchor.setTo(.5);
+  this.scale.setTo(C.obstacle.assets[type].scale*game.bg.sprite.scale.x); 
   this.filters = [game.blurX, game.blurY];
   game.localObstacles.push(this);
   game.add.existing(this);
   this.clean = function() {
     this.destroy();
+  }
+  this.syncScale = function() {
+    this.scale.setTo(C.obstacle.assets[type].scale*game.bg.sprite.scale.x);
+    this.x = this.sentX*game.bg.sprite.scale.x + game.width/2;
+    this.y = this.sentY*game.bg.sprite.scale.y + game.height/2;
   }
   this.tweenTint = function(obj, startColor, endColor, time, yoyo, repeat) {
     var repeat = repeat || 0;
@@ -321,19 +335,27 @@ function Saw(game,x,y,name,frame) {
   this.sawBlade.scale.setTo(.01);
   this.sawBlade.x += 1.7;
   this.sawBlade.y += 1.2;
-  this.scale.setTo(.2);
+  //this.scale.setTo(.2);
   game.world.bringToTop(this);
   this.clean = function() {
     this.sawBlade.destroy();
     this.destroy();
+  }
+  this.syncScale = function() {
+    this.scale.setTo(C.obstacle.assets["Saw"].scale*game.bg.sprite.scale.x);
+    this.sawBlade.scale.setTo(C.obstacle.assets["SawBlade"].scale*game.bg.sprite.scale.x);
+    this.x = this.sentX*game.bg.sprite.scale.x + game.width/2;
+    this.y = this.sentY*game.bg.sprite.scale.y + game.height/2;
+    this.sawBlade.x = this.x + 1.7*game.bg.sprite.scale.x;
+    this.sawBlade.y = this.y + 1.2*game.bg.sprite.scale.y;
   }
 }
 Saw.prototype = Object.create(Phaser.Sprite.prototype);
 Saw.prototype.constructor = Saw;
 Saw.prototype.update = function() {
   this.sawBlade.angle += 20;
-  if (this.sawBlade.scale.x < .8) {
-    this.sawBlade.scale.setTo(this.sawBlade.scale.x + .02);
+  if (this.sawBlade.scale.x < C.obstacle.assets["SawBlade"].scale*game.bg.sprite.scale.x) {
+    this.sawBlade.scale.setTo(this.sawBlade.scale.x + .02*game.bg.sprite.scale.x);
   }
 };
 
@@ -343,8 +365,14 @@ function Freeze(game,x,y,name,frame) {
   game.add.existing(this.aura);
   this.aura.anchor.setTo(.5);
   this.aura.filters = [game.blurX, game.blurY];
-  this.aura.scale.setTo(.2);
-  this.scale.setTo(.3);
+  this.syncScale = function() {
+    this.scale.setTo(C.obstacle.assets["Freeze"].scale*game.bg.sprite.scale.x);
+    this.aura.scale.setTo(C.obstacle.assets["FreezeAura"].scale*game.bg.sprite.scale.x);
+    this.x = this.sentX*game.bg.sprite.scale.x + game.width/2;
+    this.y = this.sentY*game.bg.sprite.scale.y + game.height/2;
+    this.aura.x = this.sentX*game.bg.sprite.scale.x + game.width/2;
+    this.aura.y = this.sentY*game.bg.sprite.scale.y + game.height/2;
+  }
   game.world.bringToTop(this);
   this.pulseOut = true;
   this.clean = function() {
@@ -379,7 +407,8 @@ class Boot {
     game.scale.pageAlignHorizontally = true;
     game.scale.pageAlignVertically = true;
     game.stage.disableVisibilityChange = true;
-    this.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
+    this.scale.scaleMode = Phaser.ScaleManager.RESIZE;
+    //this.scale.setGameSize(window.innerWidth-100,window.innerHeight-100);
     game.add.plugin(Fabrique.Plugins.InputField);
     game.load.script('filterX', '../filters/BlurX.js');
     //game.load.script('filterY', 'https://cdn.rawgit.com/photonstorm/phaser/master/filters/BlurY.js');
@@ -404,13 +433,14 @@ class Load {
        game.loadingText.text = game.loadingText.text + ".";
     }, this); 
     Object.keys(C.background.assets).forEach(function(assetName) {
+      console.log(C.background.assets[assetName].source);
       game.load.image(assetName, C.background.assets[assetName], C.background.width, C.background.height);
     });
     Object.keys(C.block.assets).forEach(function(assetName) {
       game.load.image(assetName, C.block.assets[assetName], C.block.width, C.block.height);
     });
     Object.keys(C.obstacle.assets).forEach(function(assetName) {
-      game.load.image(assetName, C.obstacle.assets[assetName]);
+      game.load.image(assetName, C.obstacle.assets[assetName].source);
     });
   }
   create() {
@@ -569,6 +599,7 @@ class MainMenu {
       for (var i = 0; i < C.block.names.length; i++) {
           var index = game.blocks.deadBlocks.indexOf(i);
           var lastBlock = game.blocks.create(game.blocks.positions[i][0],game.blocks.positions[i][1],C.block.names[i]);
+          lastBlock.scale.setTo(game.bg.sprite.scale.x);
           if (index > 0) {
             lastBlock.kill();
           }
@@ -609,8 +640,11 @@ class MainMenu {
           data.obstacles.forEach(function(obstacle) {
             if (tempLocalObstacles.indexOf(obstacle.obstacleNumber) < 0 ) {
               console.log("AND I'M PLACIN' ONE WHEEEEEEEEE-");
-              var newestObstacle = new window[obstacle.type](game,obstacle.x+C.game.width/2,obstacle.y+C.game.height/2,obstacle.type);
+              console.log(obstacle.x);
+              var newestObstacle = new window[obstacle.type](game,obstacle.x*game.bg.sprite.scale.x+game.width/2,obstacle.y*game.bg.sprite.scale.y+game.height/2,obstacle.type);
               newestObstacle.obstacleNumber = obstacle.obstacleNumber;
+              newestObstacle.sentX = obstacle.x;
+              newestObstacle.sentY = obstacle.y;
             }
           });
           for (i = game.localObstacles.length-1; i >= 0; i--) {
@@ -632,13 +666,50 @@ class MainMenu {
         }*/
       }
     });
-    game.bensioTitle = game.add.text(game.world.centerX,game.world.centerY - 200,"bensio",C.text.style);
+    game.bensioTitle = game.add.text(game.world.centerX,game.world.centerY - 200*game.bg.sprite.scale.x,"bensio",C.text.style);
     game.bensioTitle.anchor.setTo(.5);
     var input = game.add.inputField(game.world.centerX - C.text.inputStyle.width/2 - C.text.inputStyle.padding, game.world.centerY - C.text.inputStyle.height/2 - C.text.inputStyle.padding, C.text.inputStyle);
     input.blockInput = false;
     game.world.bringToTop(input);
     console.log(input);
     var enter = game.input.keyboard.addKey(Phaser.Keyboard.ENTER);
+    window.addEventListener("resize", function(event) {
+      console.log("tick");
+      //game.width = window.innerWidth*window.devicePixelRatio;
+      //game.height = window.innerHeight*window.devicePixelRatio;
+      game.bg.sprite.x = game.width/2;
+      game.bg.sprite.y = game.height/2;
+      //if (game.bg.sprite.width > game.width || game.bg.sprite.height > game.height) {
+        if (window.innerWidth*window.devicePixelRatio > window.innerHeight*window.devicePixelRatio) {
+          console.log("widths are",game.width,C.background.width);
+          game.bg.sprite.scale.setTo(game.width/(C.background.width));
+        } else {
+          console.log("heights are",game.height,game.bg.sprite.height);
+          game.bg.sprite.scale.setTo(game.height/(C.background.height-360));
+        }
+      //}
+      for (var i = 0; i < game.defensiveSpawners.length; i++) {
+        game.defensiveSpawners.children[i].scale.setTo(C.obstacle.assets[game.defensiveSpawners.children[i].type].scale*game.bg.sprite.scale.x);
+        //game.defensiveSpawners.children[i].reset(game.defensiveSpawners.children[i].width/2, game.defensiveSpawners.children[i].height/2 + game.defensiveSpawners.children[i].height*i);
+        game.defensiveSpawners.children[i].reset(C.obstacle.width/2, C.obstacle.height/2 + C.obstacle.height*i);
+      }
+      for (var i = 0; i < game.offensiveSpawners.length; i++) {
+        game.offensiveSpawners.children[i].scale.setTo(C.obstacle.assets[game.offensiveSpawners.children[i].type].scale*game.bg.sprite.scale.x);
+        game.offensiveSpawners.children[i].reset(game.width - C.obstacle.width/2, C.obstacle.height/2 + C.obstacle.height*i);
+      }
+      game.localObstacles.forEach(function(obstacle) {
+        obstacle.syncScale();
+      });
+      game.blocks.forEach(function(block) {
+        block.scale.setTo(game.bg.sprite.scale.x);
+      });
+      game.bensioTitle.x = game.world.centerX;
+      game.bensioTitle.y = game.world.centerY - 200*game.bg.sprite.scale.x;
+      if (input) {
+        input.x = game.world.centerX - C.text.inputStyle.width/2 - C.text.inputStyle.padding;
+        input.y = game.world.centerY - C.text.inputStyle.height/2 - C.text.inputStyle.padding;
+      }
+    });
     enter.onDown.add(function() {
       C.player.name = input.value || sessionStorage.getItem('userName') || 'Anonymous';
       sessionStorage.setItem('userName', C.player.name);
@@ -682,6 +753,7 @@ function Background(currentkey) {
   this.changeBackground = function(backgroundKey) {
     if (!backgroundKey) {
       this.sprite = this.randomBackground();
+      //Needs upkeep
     } else {
       this.sprite.loadTexture(backgroundKey);
     }
@@ -703,10 +775,23 @@ function Background(currentkey) {
 
   this.sprite.filters = [game.blurX, game.blurY];
 
+  this.sprite.width = C.game.width;
+  this.sprite.height = C.game.width;
+  if (this.sprite.width > game.width || this.sprite.height > game.height) {
+    if (window.innerWidth*window.devicePixelRatio > window.innerHeight*window.devicePixelRatio) {
+      console.log("heights are",game.height,this.sprite.height);
+      this.sprite.scale.setTo(game.height/this.sprite.height);
+    } else {
+      console.log("widths are",game.width,this.sprite.width);
+      this.sprite.scale.setTo(game.width/this.sprite.width);
+    }
+  }
+
 }
 
 
-var game = new Phaser.Game(C.game.width, C.game.height);
+//var game = new Phaser.Game(C.game.width, C.game.height);
+game = new Phaser.Game(window.innerWidth * window.devicePixelRatio, window.innerHeight * window.devicePixelRatio, Phaser.CANVAS, 'gameArea');
 game.state.add('Boot',Boot);
 game.state.add('Load',Load);
 game.state.add('MainMenu',MainMenu);
