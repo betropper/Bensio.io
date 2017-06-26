@@ -673,21 +673,41 @@ class MainMenu {
     game.world.bringToTop(input);
     console.log(input);
     var enter = game.input.keyboard.addKey(Phaser.Keyboard.ENTER);
-    window.addEventListener("resize", function(event) {
+    //window.addEventListener("resize", function(event) {
+    game.scale.onSizeChange.add(function() {
       console.log("tick");
       //game.width = window.innerWidth*window.devicePixelRatio;
-      //game.height = window.innerHeight*window.devicePixelRatio;
       game.bg.sprite.x = game.width/2;
       game.bg.sprite.y = game.height/2;
-      //if (game.bg.sprite.width > game.width || game.bg.sprite.height > game.height) {
-        if (window.innerWidth*window.devicePixelRatio > window.innerHeight*window.devicePixelRatio) {
-          console.log("widths are",game.width,C.background.width);
-          game.bg.sprite.scale.setTo(game.width/(C.background.width));
-        } else {
+      var previousWidth = game.bg.sprite.width;
+      var previousHeight = game.bg.sprite.height;
+      //if (window.innerWidth > window.innerHeight) {
+          game.bg.sprite.width = game.width;
+          game.bg.sprite.scale.y = game.bg.sprite.scale.x;
+          if (game.bg.sprite.height > game.height) {
+            console.log("TOO HIGH")
+            game.bg.sprite.width = previousWidth;
+            game.bg.sprite.scale.y = game.bg.sprite.scale.x;
+          }
+      /*} else {
+          game.bg.sprite.height = game.height;
+          game.bg.sprite.scale.x = game.bg.sprite.scale.y;
+          if (game.bg.sprite.width > game.width) {
+            console.log("TOO WIDE")
+            game.bg.sprite.height = previousHeight;
+            game.bg.sprite.scale.y = game.bg.sprite.scale.x;
+          }
+      }*.
+      //game.bg.sprite.scale.setTo(game.bg.sprite.scale.x);
+      /*if (game.bg.sprite.width > game.width || game.bg.sprite.height > game.height) {
+        if (window.innerWidth > window.innerHeight) {
           console.log("heights are",game.height,game.bg.sprite.height);
-          game.bg.sprite.scale.setTo(game.height/(C.background.height-360));
+          game.bg.sprite.scale.setTo(game.height/game.bg.sprite.height);
+        } else {
+          console.log("widths are",game.width,game.bg.sprite.width);
+          game.bg.sprite.scale.setTo(game.width/game.bg.sprite.width);
         }
-      //}
+      }*/
       for (var i = 0; i < game.defensiveSpawners.length; i++) {
         game.defensiveSpawners.children[i].scale.setTo(C.obstacle.assets[game.defensiveSpawners.children[i].type].scale*game.bg.sprite.scale.x);
         //game.defensiveSpawners.children[i].reset(game.defensiveSpawners.children[i].width/2, game.defensiveSpawners.children[i].height/2 + game.defensiveSpawners.children[i].height*i);
@@ -791,7 +811,7 @@ function Background(currentkey) {
 
 
 //var game = new Phaser.Game(C.game.width, C.game.height);
-game = new Phaser.Game(window.innerWidth * window.devicePixelRatio, window.innerHeight * window.devicePixelRatio, Phaser.CANVAS, 'gameArea');
+game = new Phaser.Game(window.innerWidth * window.devicePixelRatio, window.innerHeight * window.devicePixelRatio);
 game.state.add('Boot',Boot);
 game.state.add('Load',Load);
 game.state.add('MainMenu',MainMenu);
