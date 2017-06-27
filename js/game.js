@@ -225,7 +225,17 @@ function ObstacleSpawner(game,x,y,type,frame) {
   this.obstacleType = type;
   this.filters = [game.blurX, game.blurY];
   this.inputEnabled = true;
-  this.input.enableDrag();
+  //this.input.enableDrag();
+  this.events.onInputUp.add(function() {
+    if (!this.dragged) {
+      this.homeX = this.x;
+      this.homeY = this.y;
+      this.dragged = true;
+    } else {
+      this.checkOutOfBounds();
+      this.dragged = false;
+    }
+  },this);
   this.createInstanceOf = function() {
     /*if (window[this.obstacleType]) {
       var tempObst = new window[this.obstacleType](game,this.x,this.y,type);
@@ -247,7 +257,11 @@ function ObstacleSpawner(game,x,y,type,frame) {
     game.socket.emit('obstacleBought', {player: C.player.name, obstacle: this.obstacleType, x: (this.x-game.width/2)/game.bg.sprite.scale.x, y: (this.y-game.height/2)/game.bg.sprite.scale.y});
   }
   this.checkOutOfBounds = function() {
-    if (this.x > C.game.width - 115 || this.x < 115 || this.y < 0 || this.y > C.game.height) {
+    console.log(this);
+    console.log("Checking out of bounds...");
+    this.x = game.input.mousePointer.x;
+    this.y = game.input.mousePointer.y;
+    if (this.x > game.width - ((game.width-game.bg.width)/2) || this.x < (game.width-game.bg.width)/2 || this.y < (game.height-game.bg.height)/2 || this.y > C.game.height - ((game.height-game.bg.height)/2) ) {
       console.log("Failure.");
     } else {
       console.log("Success.");
@@ -256,7 +270,6 @@ function ObstacleSpawner(game,x,y,type,frame) {
     this.x = this.homeX;
     this.y = this.homeY;
   }
-  this.events.onDragStop.add(this.checkOutOfBounds,this);
   game.add.existing(this);
   //REMOVE THIS LATER THIS IS BAD CODE. RESIZE THE SPRITE INSTEAD.
   this.scale.setTo(C.obstacle.assets[type].scale*game.bg.sprite.scale.x);
@@ -271,7 +284,10 @@ function ObstacleSpawner(game,x,y,type,frame) {
 ObstacleSpawner.prototype = Object.create(Phaser.Sprite.prototype);
 ObstacleSpawner.prototype.constructor = ObstacleSpawner;
 ObstacleSpawner.prototype.update = function() {
-
+  if (this.dragged) {
+    this.x = game.input.mousePointer.x
+    this.y = game.input.mousePointer.y
+  }
 };
 
 function Obstacle(game,x,y,type,frame) {
@@ -684,7 +700,7 @@ class MainMenu {
       //if (window.innerWidth > window.innerHeight) {
           game.bg.sprite.width = game.width;
           game.bg.sprite.scale.y = game.bg.sprite.scale.x;
-          if (game.bg.sprite.height > game.height) {
+          if (game.bg.sprite.height > game.height-game.height/5) {
             game.bg.sprite.width = previousWidth;
             game.bg.sprite.scale.y = game.bg.sprite.scale.x;
           }
