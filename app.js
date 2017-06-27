@@ -93,7 +93,7 @@ function Freeze(x,y,type,material) {
 
 function Saw(x,y,type,material) {
   Obstacle.call(this,x,y,type,material);
-  setTimeout(function(saw) {
+  this.timeout = setTimeout(function(saw) {
     if (!S.roundChanging) {
       saw.obstacleShape = new p2.Circle({ radius: 50});
       saw.body.damaging = true;
@@ -136,7 +136,7 @@ function Block(count) {
     world.addBody(this.body);
     this.body.parent = this;
     this.blockNumber = count;
-    this.hp = 20;
+    this.hp = 40;
     this.body.damaging = true;
     this.name = S.block.names[count];
     this.constrainVelocity = function(maxVelocity) {
@@ -162,7 +162,7 @@ function Block(count) {
     this.revive = function(x,y) {
       var index = world.deadBlocks.indexOf(this.blockNumber);
       world.deadBlocks.splice(index,1);
-      this.hp = 20;
+      this.hp = 40;
       world.addBody(this.body);
       this.body.position = [S.block.positions[this.count].x, S.block.positions[this.count].y];
       this.body.velocity = [getRandomInt(-60,60), getRandomInt(-60,60)]; 
@@ -408,6 +408,10 @@ var changeRound = function() {
   });
   for (i = S.obstacles.length-1; i >= 0; i--) {
     S.obstacles[i].die();
+    if (S.obstacles[i].timeout) {
+      clearTimeout(S.obstacles[i].timeout);
+      console.log("Cleared a Saw");
+    }
   };
   S.obstacles = [];
   S.obstacleData = [];

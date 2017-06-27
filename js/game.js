@@ -244,7 +244,7 @@ function ObstacleSpawner(game,x,y,type,frame) {
     } else {
       new Obstacle(game,this.x,this.y,type,frame);
   }*/
-    game.socket.emit('obstacleBought', {player: C.player.name, obstacle: this.obstacleType, x: this.x/game.bg.sprite.scale.x-game.width/2, y: this.y/game.bg.sprite.scale.y-game.height/2});
+    game.socket.emit('obstacleBought', {player: C.player.name, obstacle: this.obstacleType, x: (this.x-game.width/2)/game.bg.sprite.scale.x, y: (this.y-game.height/2)/game.bg.sprite.scale.y});
   }
   this.checkOutOfBounds = function() {
     if (this.x > C.game.width - 115 || this.x < 115 || this.y < 0 || this.y > C.game.height) {
@@ -685,7 +685,6 @@ class MainMenu {
           game.bg.sprite.width = game.width;
           game.bg.sprite.scale.y = game.bg.sprite.scale.x;
           if (game.bg.sprite.height > game.height) {
-            console.log("TOO HIGH")
             game.bg.sprite.width = previousWidth;
             game.bg.sprite.scale.y = game.bg.sprite.scale.x;
           }
@@ -725,6 +724,7 @@ class MainMenu {
       });
       game.bensioTitle.x = game.world.centerX;
       game.bensioTitle.y = game.world.centerY - 200*game.bg.sprite.scale.x;
+      game.bensioTitle.scale.setTo(game.bg.sprite.scale.x);
       if (input) {
         input.x = game.world.centerX - C.text.inputStyle.width/2 - C.text.inputStyle.padding;
         input.y = game.world.centerY - C.text.inputStyle.height/2 - C.text.inputStyle.padding;
