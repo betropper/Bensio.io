@@ -70,12 +70,16 @@ var C = {
       "green": "assets/greensquare.png",
       "orange": "assets/orangesquare.png"
     },
+    skins: {
+      "monacle": "assets/skins/dapper.png",
+      "6die": "assets/skins/6die.png"
+    },
     names: ["red","blue","green","orange"]
   },
   obstacle: {
     width: 72,
     height: 72,
-    offensive: ["Saw"],
+    offensive: ["Saw","Speaker"],
     defensive: ["Wall","Freeze"],
     assets: {
       "Wall": {
@@ -97,6 +101,10 @@ var C = {
       "SawBlade": {
         source: "assets/sawblade.png",
         scale: 1.2
+      },
+      "Speaker": {
+        source: "assets/speaker.png",
+        scale: .09
       }
     }
   }
@@ -339,6 +347,16 @@ function Wall(game,x,y,name,frame) {
 Wall.prototype = Object.create(Phaser.Sprite.prototype);
 Wall.prototype.constructor = Wall;
 Wall.prototype.update = function() {
+
+};
+
+function Speaker(game,x,y,name,frame) {
+  Obstacle.call(this,game,x,y,name);
+  game.add.tween(this.scale).to( {x: C.obstacle.assets["Speaker"].scale*game.bg.sprite.scale.x*1.2, y: C.obstacle.assets["Speaker"].scale*game.bg.sprite.scale.x*1.2}, 50, Phaser.Easing.Linear.In, true, 0, -1).yoyo(true).repeatDelay(500);
+}
+Speaker.prototype = Object.create(Phaser.Sprite.prototype);
+Speaker.prototype.constructor = Wall;
+Speaker.prototype.update = function() {
 
 };
 

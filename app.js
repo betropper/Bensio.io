@@ -91,6 +91,16 @@ function Freeze(x,y,type,material) {
   world.addBody(this.body);
 }
 
+function Speaker(x,y,type,material) {
+  Obstacle.call(this,x,y,type,material);
+  this.obstacleShape = new p2.Circle({ radius: 40});
+  this.body.damaging = false;
+  this.body.propelling = true;
+  this.propellTime = 1000;
+  this.body.addShape(this.obstacleShape);
+  world.addBody(this.body);
+}
+
 function Saw(x,y,type,material) {
   Obstacle.call(this,x,y,type,material);
   this.timeout = setTimeout(function(saw) {
@@ -116,6 +126,10 @@ function spawnObstacle(x,y,type,owner) {
     case "Freeze":
       var newObstacle = new Freeze(x,y,type)
       //S.online[owner].obstaclesOwned.Freeze.push(newObstacle);
+      break;
+    case "Speaker":
+      var newObstacle = new Speaker(x,y,type)
+      //S.online[owner].obstaclesOwned.Speaker.push(newObstacle);
       break;
   }
   //console.log("New obstacle list",S.obstacles);
@@ -256,12 +270,12 @@ world.on('postStep', function() {
   world.blocks.forEach(function(block) {
     if (block.hp > 0) {
       //console.log(world.blocks[0].body.velocity[1]);
-      if (!block.stunned && !world.stunned) {
-        block.constrainVelocity(S.block.velocityConstant);
-      } else if (world.stunned) {
+      if (world.stunned || block.stunned) {
         block.constrainVelocity(0);
+      } else if (block.propelled) {
+        block.constrainVelocity(S.block.velocityConstant*2); 
       } else {
-        block.constrainVelocity(0);
+        block.constrainVelocity(S.block.velocityConstant);
       }
       world.blocks.positions[block.count] = block.body.position;
       world.blocks.velocities[block.count] = block.body.velocity;
@@ -316,6 +330,12 @@ world.on('beginContact', function(evt) {
         stunnedBlock.stunned = false;
       }, bodyB.parent.stunTime, bodyA.parent);
     }
+    if (bodyB.propelling && bodyB.parent) {
+      bodyA.parent.propelled = true;
+      setTimeout(function(propelledBlock) {
+        propelledBlock.propelled = false;
+      }, bodyB.parent.propellTime, bodyA.parent);
+    }
   }
   if (bodyB.parent && bodyB.parent.hp) {
     if (bodyA.damaging) {
@@ -333,6 +353,12 @@ world.on('beginContact', function(evt) {
         stunnedBlock.stunned = false;
         stunnedBlock.constrainVelocity(S.block.velocityConstant);
       }, bodyA.parent.stunTime, bodyB.parent);
+    }
+    if (bodyA.propelling && bodyA.parent) {
+      bodyB.parent.propelled = true;
+      setTimeout(function(propelledBlock) {
+        propelledBlock.propelled = false;
+      }, bodyA.parent.propellTime, bodyB.parent);
     }
   }
 });
