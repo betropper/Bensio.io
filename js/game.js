@@ -104,7 +104,7 @@ var C = {
       },
       "Speaker": {
         source: "assets/speaker.png",
-        scale: 1
+        scale: .4
       }
     }
   }
@@ -115,6 +115,7 @@ function Block(game,x,y,color,frame) {
   console.log(x,y,color,frame);
   Phaser.Sprite.call(this, game, x, y, color);
   this.anchor.setTo(.5);
+  this.color = color;
   //this.scale = game.bg.scale;
   //game.physics.p2.enable(this);
   //this.body.setCollisionGroup(C.block.blockCollisionGroup);
@@ -158,10 +159,9 @@ function Block(game,x,y,color,frame) {
           this.revive();
         }
         //this.filters.push(new PIXI.filters.GlowFilter(100, 100, 50, 500, 50, 0x008080));
-        if (!game.bensioTitle.betStateTween) {
-          game.bensioTitle.text = "Click on a block to join its team."
-          game.bensioTitle.betStateTween = game.add.tween(game.bensioTitle).to({y: game.world.centerY, alpha: 1}, 1000, Phaser.Easing.Linear.None, true)
-        }
+        
+        game.userDisplay.bensioTitle.betStateTween = game.add.tween(game.userDisplay.bensioTitle).to({y: game.world.centerY, alpha: 1}, 1000, Phaser.Easing.Linear.None, true)
+        game.userDisplay.bensioTitle.text = "Click on a block to join its team."
         this.inputEnabled = true;
         this.bettingEnabled = true;
         this.events.onInputUp.add(function() {
@@ -179,16 +179,16 @@ function Block(game,x,y,color,frame) {
           this.scale.setTo(game.bg.sprite.scale.x);
         }, this);
       } else {
-        if (game.bensioTitle.betStateTween) {
-          game.bensioTitle.betStateTween.stop();
-          game.bensioTitle.betStateTween = undefined;
+        if (game.userDisplay.bensioTitle.betStateTween) {
+          game.userDisplay.bensioTitle.betStateTween.stop();
+          game.userDisplay.bensioTitle.betStateTween = undefined;
         }
         for (i = 0; i < game.blocks.children.length; i++) {
           game.blocks.children[i].tint = 0xffffff;
         }
-        game.bensioTitle.alpha = 0;
-        game.bensioTitle.text = "bensio";
-        game.bensioTitle.y = game.world.centerY - 200;
+        game.userDisplay.bensioTitle.alpha = 0;
+        game.userDisplay.bensioTitle.text = "bensio";
+        game.userDisplay.bensioTitle.y = game.world.centerY - 200;
         this.inputEnabled = false;
         this.bettingEnabled = false;
         this.events.onInputOver._bindings = [];
@@ -220,6 +220,16 @@ Block.prototype.update = function() {
         this.dying = false;
         this.alpha = 1;
       }
+    } else if (game.status == "Finishing" && this.winner) {
+        this.angle += 10;
+    } else if (game.status != "Finishing") {
+        if (this.victoryTween) {
+          this.victoryTween.stop();
+          this.victoryTween = null;
+        }
+        if (this.winner) {
+          this.winner = false;
+        }
     }
 };
 
@@ -421,6 +431,7 @@ function Freeze(game,x,y,name,frame) {
     }, this);
   }
 }
+
 Freeze.prototype = Object.create(Phaser.Sprite.prototype);
 Freeze.prototype.constructor = Freeze;
 Freeze.prototype.update = function() {
@@ -439,7 +450,7 @@ Freeze.prototype.update = function() {
 
 class Boot {
   init() {
-    game.stage.smoothed = false;
+    //game.stage.smoothed = false;
     game.scale.pageAlignHorizontally = true;
     game.scale.pageAlignVertically = true;
     game.stage.disableVisibilityChange = true;
@@ -503,6 +514,7 @@ class Load {
     }
     game.socket = io();
     game.socket.on('firstMessage',function(data) {
+      game.status = "";
       game.bg = new Background(data.bg);
       C.game.number = data.number;
       //game.clickCount = game.add.text(game.world.centerX,game.world.centerY,C.game.number,C.text.style);
@@ -653,7 +665,12 @@ class MainMenu {
     });
     game.socket.on('worldTick',function(data) { 
       if (data.deadBlocks && data.deadBlocks.length >= game.blocks.length-1) {
-         console.log("EVERYONE DIED BUT ONE.");
+        console.log("EVERYONE DIED BUT ONE.");
+        game.status = "Finishing";
+      } else if (data.paused) {
+        game.status = "Betting";
+      } else {
+        game.status = "Ongoing";
       }
       for (var i = 0; i < game.blocks.length; i++) {
         if (data.paused) {
@@ -661,15 +678,22 @@ class MainMenu {
         }
         //Include indexOf for IE later.
         
-        if (data.deadBlocks && data.deadBlocks.indexOf(i) > -1 && game.blocks.children[i].alive) {
+        if (data.deadBlocks && data.deadBlocks.indexOf(i) > -1 && game.blocks.children[i].alive && !game.blocks.children[i].winner) {
           game.blocks.children[i].lose();
           game.blocks.deadBlocks = data.deadBlocks;
-        } else if (game.blocks.children[i].alive) {
+        } else if (game.blocks.children[i].alive && game.status != "Finishing") {
           game.blocks.children[i].syncBlock(data.positions[i][0], data.positions[i][1],data.angles[i]);
           if (data.paused && !game.blocks.children[i].bettingEnabled) {
             game.blocks.children[i].enableBetting(true);
           } else if (!data.paused && game.blocks.children[i].bettingEnabled) {
             game.blocks.children[i].enableBetting(false);
+          }
+        } else if (game.status == "Finishing" && game.blocks.children[i].alive) {
+          game.blocks.children[i].winner = true;
+          if (!game.blocks.children[i].victoryTween) {
+            game.blocks.children[i].victoryTween = game.add.tween(game.blocks.children[i]).to({x: game.world.centerX, y: game.world.centerY}, 1000, Phaser.Easing.Linear.None, true);
+            game.userDisplay.bensioTitle.text = "Team " + game.blocks.children[i].color + " wins!";
+            game.userDisplay.bensioTitle.winStateTween = game.add.tween(game.userDisplay.bensioTitle).to({y: game.world.centerY - 150, alpha: 1}, 1000, Phaser.Easing.Linear.None, true)
           }
         }
       }
@@ -706,8 +730,29 @@ class MainMenu {
           }
         }*/
     });
-    game.bensioTitle = game.add.text(game.world.centerX,game.world.centerY - 200*game.bg.sprite.scale.x,"bensio",C.text.style);
-    game.bensioTitle.anchor.setTo(.5);
+    //Create the info to display to the user.
+    game.userDisplay = {};
+    game.userDisplay.currentWorth = game.add.text(0,game.world.height - 100*game.bg.sprite.scale.x,"Buxio: 0",C.text.style);
+    game.userDisplay.currentWorth.anchor.setTo(0);
+    game.userDisplay.currentWorth.resetPosition = function() {
+      this.x = 0;
+      this.y = game.world.height - 100*game.bg.sprite.scale.x;
+    }
+    game.socket.on('buxioChange',function(bux) {
+      game.userDisplay.currentWorth.text = "Buxio: " + bux;
+    });
+    game.userDisplay.bensioTitle = game.add.text(game.world.centerX,game.world.centerY - 200*game.bg.sprite.scale.x,"bensio",C.text.style);
+    game.userDisplay.bensioTitle.anchor.setTo(.5);
+    game.userDisplay.bensioTitle.resetPosition = function() {
+      this.x = game.world.centerX;
+      this.y = game.world.centerY - 200*game.bg.sprite.scale.x;
+    }
+    Object.keys(game.userDisplay).forEach(function(displayKey) {
+      game.userDisplay[displayKey].homeX = game.userDisplay[displayKey].x;
+      game.userDisplay[displayKey].homeY = game.userDisplay[displayKey].y;
+      game.userDisplay[displayKey].scale.setTo(game.bg.sprite.scale.x);
+    });
+
     var input = game.add.inputField(game.world.centerX - C.text.inputStyle.width/2 - C.text.inputStyle.padding, game.world.centerY - C.text.inputStyle.height/2 - C.text.inputStyle.padding, C.text.inputStyle);
     input.blockInput = false;
     game.world.bringToTop(input);
@@ -762,9 +807,10 @@ class MainMenu {
       game.blocks.forEach(function(block) {
         block.scale.setTo(game.bg.sprite.scale.x);
       });
-      game.bensioTitle.x = game.world.centerX;
-      game.bensioTitle.y = game.world.centerY - 200*game.bg.sprite.scale.x;
-      game.bensioTitle.scale.setTo(game.bg.sprite.scale.x);
+      Object.keys(game.userDisplay).forEach(function(displayKey) {
+        game.userDisplay[displayKey].resetPosition();
+        game.userDisplay[displayKey].scale.setTo(game.bg.sprite.scale.x);
+      });
       if (input) {
         input.x = game.world.centerX - C.text.inputStyle.width/2 - C.text.inputStyle.padding;
         input.y = game.world.centerY - C.text.inputStyle.height/2 - C.text.inputStyle.padding;
@@ -792,7 +838,7 @@ class Play {
       block.revive();
     });
     console.log("Did it!");
-    game.bensioTitle.alpha = 0;
+    game.userDisplay.bensioTitle.alpha = 0;
     game.clear();
     //game.clickCount.revive();
     game.offensiveSpawners.forEach(function(spawner) {

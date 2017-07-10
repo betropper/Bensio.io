@@ -43,7 +43,13 @@ var S = {
       {x: 1008 - 1280/2,y: 150 - 920/2, vx: getRandomInt(-60,60), vy: getRandomInt(-60,60)},
       {x: 1008 - 1280/2, y: 744 - 920/2, vx: getRandomInt(-60,60), vy: getRandomInt(-60,60)}
     ],
-    names: ["red","blue","green","orange"]
+    names: ["red","blue","green","orange"],
+    betPools: {
+      "red": 0,
+      "blue": 0,
+      "green": 0,
+      "orange": 0
+    }
   },
   obstacles: [],
   obstacleData: [],
@@ -381,6 +387,7 @@ io.sockets.on('connection', function(socket) {
     if (S.online[socket.id] && data.player && data.color && world.stunned) {
       console.log(data.player + ' has placed a bet.');
       S.online[socket.id].bettingOn = data.color;
+      S.block.betPools[data.color] += 1;
     }
   });
   socket.on('obstacleBought', function(data) {
@@ -406,7 +413,8 @@ io.sockets.on('connection', function(socket) {
         Freeze: [],
         Wall: [],
         Saw: []
-      }
+      },
+      socket: socket
     };
     console.log(name + " has registered their name.");
     console.log(S.online);
@@ -425,10 +433,22 @@ io.sockets.on('connection', function(socket) {
 var changeRound = function() {
   S.roundChanging = false;
   console.log(S.winner);
+  var buxioList = {};
+  var betterCount = 0;
+  Object.keys(S.block.betPools).forEach(function(pool) {
+    betterCount += S.block.betPools[pool];
+  });
+  var payoutPool = betterCount * 10;
+  var winnerPayout = payoutPool/S.block.betPools[S.winner];
+  Object.keys(S.block.betPools).forEach(function(pool) {
+    S.block.betPools[pool] = 0;
+  });
   Object.keys(S.online).forEach(function(playerId) {
     if (S.online[playerId].bettingOn && S.online[playerId].bettingOn == S.winner) {
-      S.online[playerId].buxio += 10;
+      S.online[playerId].buxio += winnerPayout;
+      buxioList[S.online[playerId].name] = S.online[playerId].buxio;
       console.log(S.online[playerId].name + " just won! Total Buxio:",S.online[playerId].buxio);
+      S.online[playerId].socket.emit("buxioChange", S.online[playerId].buxio);
       delete S.online[playerId].bettingOn;
     }
   });
@@ -450,6 +470,7 @@ var changeRound = function() {
   io.emit('newRound',{
     bg: newbg,
   });
+  buxioList = {};
   world.stunned = true;
   setTimeout(function(world) {
     S.winner = '';
