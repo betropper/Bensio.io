@@ -104,7 +104,7 @@ var C = {
       },
       "Speaker": {
         source: "assets/speaker.png",
-        scale: .09
+        scale: 1
       }
     }
   }
@@ -398,6 +398,7 @@ function Freeze(game,x,y,name,frame) {
   this.aura = game.add.sprite(this.x,this.y,"FreezeAura");
   game.add.existing(this.aura);
   this.aura.anchor.setTo(.5);
+  this.aura.scale.setTo(C.obstacle.assets["FreezeAura"].scale*game.bg.sprite.scale.x);
   this.aura.filters = [game.blurX, game.blurY];
   this.syncScale = function() {
     this.scale.setTo(C.obstacle.assets["Freeze"].scale*game.bg.sprite.scale.x);
@@ -425,12 +426,12 @@ Freeze.prototype.constructor = Freeze;
 Freeze.prototype.update = function() {
   if (this.pulseOut) {
     this.aura.scale.setTo(this.aura.scale.x + .05);
-    if (this.aura.scale.x >= .3) {
+    if (this.aura.scale.x >= .2) {
       this.pulseOut = false;
     }
   } else {
     this.aura.scale.setTo(this.aura.scale.x - .01);
-    if (this.aura.scale.x <= .1) {
+    if (this.aura.scale.x <= .05) {
       this.pulseOut = true;
     }
   }
@@ -438,6 +439,7 @@ Freeze.prototype.update = function() {
 
 class Boot {
   init() {
+    game.stage.smoothed = false;
     game.scale.pageAlignHorizontally = true;
     game.scale.pageAlignVertically = true;
     game.stage.disableVisibilityChange = true;
@@ -650,11 +652,15 @@ class MainMenu {
       dyingBlock.kill();
     });
     game.socket.on('worldTick',function(data) { 
+      if (data.deadBlocks && data.deadBlocks.length >= game.blocks.length-1) {
+         console.log("EVERYONE DIED BUT ONE.");
+      }
       for (var i = 0; i < game.blocks.length; i++) {
         if (data.paused) {
           game.blocks.children[i].revive();
         }
         //Include indexOf for IE later.
+        
         if (data.deadBlocks && data.deadBlocks.indexOf(i) > -1 && game.blocks.children[i].alive) {
           game.blocks.children[i].lose();
           game.blocks.deadBlocks = data.deadBlocks;
@@ -666,6 +672,7 @@ class MainMenu {
             game.blocks.children[i].enableBetting(false);
           }
         }
+      }
         var tempDataObstacles = convertSet(data.obstacles);
         var tempLocalObstacles = convertSet(game.localObstacles);
         if (!compareSets(tempDataObstacles,tempLocalObstacles)) {
@@ -698,7 +705,6 @@ class MainMenu {
             game.blocks.children[i].body.velocity.y = data.velocities[i][1];
           }
         }*/
-      }
     });
     game.bensioTitle = game.add.text(game.world.centerX,game.world.centerY - 200*game.bg.sprite.scale.x,"bensio",C.text.style);
     game.bensioTitle.anchor.setTo(.5);
