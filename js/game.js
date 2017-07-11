@@ -95,12 +95,12 @@ var C = {
     data: {
       "Wall": {
         source: "assets/wall.png",
-        scale: .3,
+        scale: .25,
         max: 2
       },
       "Freeze": {
         source: "assets/freeze.png",
-        scale: .3,
+        scale: .5,
         max: 2
       },
       "FreezeAura": {
@@ -109,16 +109,16 @@ var C = {
       },
       "Saw": {
         source: "assets/sawbody.png",
-        scale: .3,
+        scale: .25,
         max: 2
       },
       "SawBlade": {
         source: "assets/sawblade.png",
-        scale: 1.2,
+        scale: 1,
       },
       "Speaker": {
         source: "assets/speaker.png",
-        scale: .4,
+        scale: .3,
         max: 2
       }
     }

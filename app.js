@@ -73,11 +73,13 @@ function Obstacle(x,y,type,material) {
   this.body = new p2.Body({
     position: [x,y]
   });
-  this.body.material = material;
   this.die = function(deathCase) {
+    S.obstacles.splice(S.obstacles.indexOf(this),1);
+    S.obstacleData.splice(S.obstacles.indexOf(this.info),1);
     world.removeBodies.push(this.body);
     console.log(type + " died.");
   };
+  this.body.material = material;
   this.body.parent = this;
   this.info = {
     x: x,
@@ -127,6 +129,15 @@ function Saw(x,y,type,material) {
       world.addBody(saw.body);
     }
   }, 2000,this);
+  this.die = function(deathCase) {
+    if (this.timeout) {
+      clearTimeout(this.timeout);
+    }
+    S.obstacles.splice(S.obstacles.indexOf(this),1);
+    S.obstacleData.splice(S.obstacles.indexOf(this.info),1);
+    world.removeBodies.push(this.body);
+    console.log(type + " died.");
+  }
 }
 
 function spawnObstacle(x,y,type,owner) {
@@ -307,6 +318,9 @@ world.on('postStep', function() {
       }
     }
     setTimeout(changeRound, 3000);
+    for (i = S.obstacles.length-1; i >= 0; i--) {
+      S.obstacles[i].die();
+    };
     S.roundChanging = true;
   } else {
       io.emit('worldTick',{
@@ -470,15 +484,6 @@ var changeRound = function() {
         S.online[playerId].obstaclesOwned[obstacle] = 0;
     }
   });
-  for (i = S.obstacles.length-1; i >= 0; i--) {
-    S.obstacles[i].die();
-    if (S.obstacles[i].timeout) {
-      clearTimeout(S.obstacles[i].timeout);
-      console.log("Cleared a Saw");
-    }
-  };
-  S.obstacles = [];
-  S.obstacleData = [];
   var newbg = S.bgs[Math.floor(Math.random() * S.bgs.length)];
   world.blocks.forEach(function(block) {
     block.body.angularVelocity = 0;
