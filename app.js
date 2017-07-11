@@ -58,7 +58,7 @@ var S = {
   winner: ''
 }
   S.highScores.sort(function(a, b) {
-      return b[1] - a[1];
+      return a[1] - b[1];
   });
   S.highScores.update = function() {
     S.highScores.splice(0,S.highScores.length)
@@ -488,7 +488,7 @@ var changeRound = function() {
   });
   S.highScores.update();
   io.emit('newRound',{
-    bg: newbg,
+    bg: newbg
   });
   buxioList = {};
   world.stunned = true;

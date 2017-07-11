@@ -275,27 +275,29 @@ function ObstacleSpawner(game,x,y,type,frame) {
     }
   }
   this.createInstanceOf = function() {
-    /*if (window[this.obstacleType]) {
-      var tempObst = new window[this.obstacleType](game,this.x,this.y,type);
-    } else {
-      var tempObst = new Obstacle(game,this.x,this.y,type);
+    if (game.status == "Ongoing") {
+      /*if (window[this.obstacleType]) {
+        var tempObst = new window[this.obstacleType](game,this.x,this.y,type);
+      } else {
+        var tempObst = new Obstacle(game,this.x,this.y,type);
+      }*/
+      var tempObst = game.add.sprite(this.x,this.y,type);
+      tempObst.anchor.setTo(.5);
+      tempObst.scale.setTo(C.obstacle.assets[type].scale*game.bg.sprite.scale.x);
+      tempObst.lifespan = 100;
+      /*game.time.events.add(Phaser.Timer.SECOND * .1, function() {
+        this.destroy();
+      }, tempObst);*/
+      /*if (this.obstacleType == "Saw") {
+        new Saw(game,this.x,this.y,type,frame);
+      } else {
+        new Obstacle(game,this.x,this.y,type,frame);
     }*/
-    var tempObst = game.add.sprite(this.x,this.y,type);
-    tempObst.anchor.setTo(.5);
-    tempObst.scale.setTo(C.obstacle.assets[type].scale*game.bg.sprite.scale.x);
-    tempObst.lifespan = 100;
-    /*game.time.events.add(Phaser.Timer.SECOND * .1, function() {
-      this.destroy();
-    }, tempObst);*/
-    /*if (this.obstacleType == "Saw") {
-      new Saw(game,this.x,this.y,type,frame);
-    } else {
-      new Obstacle(game,this.x,this.y,type,frame);
-  }*/
-    game.socket.emit('obstacleBought', {player: C.player.name, obstacle: this.obstacleType, x: (this.x-game.width/2)/game.bg.sprite.scale.x, y: (this.y-game.height/2)/game.bg.sprite.scale.y});
-    C.player.obstaclesOwned[this.obstacleType]++
-    if (C.player.obstaclesOwned[this.obstacleType] >= C.obstacle.assets[type].max) {
-      this.kill();
+      game.socket.emit('obstacleBought', {player: C.player.name, obstacle: this.obstacleType, x: (this.x-game.width/2)/game.bg.sprite.scale.x, y: (this.y-game.height/2)/game.bg.sprite.scale.y});
+      C.player.obstaclesOwned[this.obstacleType]++
+      if (C.player.obstaclesOwned[this.obstacleType] >= C.obstacle.assets[type].max) {
+        this.kill();
+      }
     }
   }
   this.checkOutOfBounds = function(pointer) {
@@ -675,10 +677,10 @@ class MainMenu {
   create() {
     //game.bg.sprite.filters = [];
       for (var i = 0; i < C.obstacle.offensive.length; i++) {
-        game.offensiveSpawners.create(game.width - C.obstacle.width/2, C.obstacle.height/2 + C.obstacle.height*i, C.obstacle.offensive[i]);
+        game.offensiveSpawners.create(game.width - C.obstacle.width/2, C.obstacle.height/2 + 150*game.bg.sprite.scale.y*i, C.obstacle.offensive[i]);
       }
       for (var i = 0; i < C.obstacle.defensive.length; i++) {
-        game.defensiveSpawners.create(C.obstacle.width/2, C.obstacle.height/2 + C.obstacle.height*i, C.obstacle.defensive[i]);
+        game.defensiveSpawners.create(C.obstacle.width/2, C.obstacle.height/2 + 150*game.bg.sprite.scale.y*i, C.obstacle.defensive[i]);
       }
       game.offensiveSpawners.forEach(function(spawner) {
         spawner.inputEnabled = false;
@@ -830,11 +832,11 @@ class MainMenu {
       for (var i = 0; i < game.defensiveSpawners.length; i++) {
         game.defensiveSpawners.children[i].scale.setTo(C.obstacle.assets[game.defensiveSpawners.children[i].type].scale*game.bg.sprite.scale.x);
         //game.defensiveSpawners.children[i].reset(game.defensiveSpawners.children[i].width/2, game.defensiveSpawners.children[i].height/2 + game.defensiveSpawners.children[i].height*i);
-        game.defensiveSpawners.children[i].reset(C.obstacle.width/2, C.obstacle.height/2 + 100*game.bg.sprite.scale.y*i);
+        game.defensiveSpawners.children[i].reset(C.obstacle.width/2, C.obstacle.height/2 + 150*game.bg.sprite.scale.y*i);
       }
       for (var i = 0; i < game.offensiveSpawners.length; i++) {
         game.offensiveSpawners.children[i].scale.setTo(C.obstacle.assets[game.offensiveSpawners.children[i].type].scale*game.bg.sprite.scale.x);
-        game.offensiveSpawners.children[i].reset(game.width - C.obstacle.width/2, C.obstacle.height/2 + 100*game.bg.sprite.scale.y*i);
+        game.offensiveSpawners.children[i].reset(game.width - C.obstacle.width/2, C.obstacle.height/2 + 150*game.bg.sprite.scale.y*i);
       }
       game.localObstacles.forEach(function(obstacle) {
         obstacle.syncScale();
