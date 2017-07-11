@@ -743,6 +743,7 @@ class MainMenu {
           if (!game.blocks.children[i].victoryTween) {
             game.blocks.children[i].victoryTween = game.add.tween(game.blocks.children[i]).to({x: game.world.centerX, y: game.world.centerY}, 1000, Phaser.Easing.Linear.None, true);
             game.userDisplay.bensioTitle.text = "Team " + game.blocks.children[i].color + " wins!";
+            game.world.bringToTop(game.userDisplay.bensioTitle);
             game.userDisplay.bensioTitle.winStateTween = game.add.tween(game.userDisplay.bensioTitle).to({y: game.world.centerY - 150, alpha: 1}, 1000, Phaser.Easing.Linear.None, true)
           }
         }
