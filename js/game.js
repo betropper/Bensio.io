@@ -92,7 +92,7 @@ var C = {
     height: 72,
     offensive: ["Saw","Speaker"],
     defensive: ["Wall","Freeze"],
-    assets: {
+    data: {
       "Wall": {
         source: "assets/red-circle.png",
         scale: 1,
@@ -261,10 +261,7 @@ function ObstacleSpawner(game,x,y,type,frame) {
   this.obstacleType = type;
   this.filters = [game.blurX, game.blurY];
   this.inputEnabled = true;
-  //this.input.enableDrag();
-
   this.attach = function() {
-    //game.debug.text(pointer.x + " " + pointer.y,200,200);
     if (!this.dragged) {
       this.homeX = this.x;
       this.homeY = this.y;
@@ -283,7 +280,7 @@ function ObstacleSpawner(game,x,y,type,frame) {
       }*/
       var tempObst = game.add.sprite(this.x,this.y,type);
       tempObst.anchor.setTo(.5);
-      tempObst.scale.setTo(C.obstacle.assets[type].scale*game.bg.sprite.scale.x);
+      tempObst.scale.setTo(C.obstacle.data[type].scale*game.bg.sprite.scale.x);
       tempObst.lifespan = 100;
       /*game.time.events.add(Phaser.Timer.SECOND * .1, function() {
         this.destroy();
@@ -295,7 +292,7 @@ function ObstacleSpawner(game,x,y,type,frame) {
     }*/
       game.socket.emit('obstacleBought', {player: C.player.name, obstacle: this.obstacleType, x: (this.x-game.width/2)/game.bg.sprite.scale.x, y: (this.y-game.height/2)/game.bg.sprite.scale.y});
       C.player.obstaclesOwned[this.obstacleType]++
-      if (C.player.obstaclesOwned[this.obstacleType] >= C.obstacle.assets[type].max) {
+      if (C.player.obstaclesOwned[this.obstacleType] >= C.obstacle.data[type].max) {
         this.kill();
       }
     }
@@ -318,12 +315,12 @@ function ObstacleSpawner(game,x,y,type,frame) {
   }
   game.add.existing(this);
   //REMOVE THIS LATER THIS IS BAD CODE. RESIZE THE SPRITE INSTEAD.
-  this.scale.setTo(C.obstacle.assets[type].scale*game.bg.sprite.scale.x);
+  this.scale.setTo(C.obstacle.data[type].scale*game.bg.sprite.scale.x);
   this.events.onDragStart.add(function() {
-    this.scale.setTo(C.obstacle.assets[type].scale*game.bg.sprite.scale.x*1.5);
+    this.scale.setTo(C.obstacle.data[type].scale*game.bg.sprite.scale.x*1.5);
   }, this);
   this.events.onDragStop.add(function() {
-    this.scale.setTo(C.obstacle.assets[type].scale*game.bg.sprite.scale.x); 
+    this.scale.setTo(C.obstacle.data[type].scale*game.bg.sprite.scale.x); 
   }, this);
 }
 
@@ -340,7 +337,7 @@ function Obstacle(game,x,y,type,frame) {
   console.log(x,y,type,frame);
   Phaser.Sprite.call(this, game, x, y, type);
   this.anchor.setTo(.5);
-  this.scale.setTo(C.obstacle.assets[type].scale*game.bg.sprite.scale.x); 
+  this.scale.setTo(C.obstacle.data[type].scale*game.bg.sprite.scale.x); 
   this.filters = [game.blurX, game.blurY];
   game.localObstacles.push(this);
   game.add.existing(this);
@@ -348,7 +345,7 @@ function Obstacle(game,x,y,type,frame) {
     this.destroy();
   }
   this.syncScale = function() {
-    this.scale.setTo(C.obstacle.assets[type].scale*game.bg.sprite.scale.x);
+    this.scale.setTo(C.obstacle.data[type].scale*game.bg.sprite.scale.x);
     this.x = this.sentX*game.bg.sprite.scale.x + game.width/2;
     this.y = this.sentY*game.bg.sprite.scale.y + game.height/2;
   }
@@ -390,7 +387,7 @@ Wall.prototype.update = function() {
 
 function Speaker(game,x,y,name,frame) {
   Obstacle.call(this,game,x,y,name);
-  game.add.tween(this.scale).to( {x: C.obstacle.assets["Speaker"].scale*game.bg.sprite.scale.x*1.2, y: C.obstacle.assets["Speaker"].scale*game.bg.sprite.scale.x*1.2}, 50, Phaser.Easing.Linear.In, true, 0, -1).yoyo(true).repeatDelay(500);
+  game.add.tween(this.scale).to( {x: C.obstacle.data["Speaker"].scale*game.bg.sprite.scale.x*1.2, y: C.obstacle.data["Speaker"].scale*game.bg.sprite.scale.x*1.2}, 50, Phaser.Easing.Linear.In, true, 0, -1).yoyo(true).repeatDelay(500);
 }
 Speaker.prototype = Object.create(Phaser.Sprite.prototype);
 Speaker.prototype.constructor = Wall;
@@ -414,8 +411,8 @@ function Saw(game,x,y,name,frame) {
     this.destroy();
   }
   this.syncScale = function() {
-    this.scale.setTo(C.obstacle.assets["Saw"].scale*game.bg.sprite.scale.x);
-    this.sawBlade.scale.setTo(C.obstacle.assets["SawBlade"].scale*game.bg.sprite.scale.x);
+    this.scale.setTo(C.obstacle.data["Saw"].scale*game.bg.sprite.scale.x);
+    this.sawBlade.scale.setTo(C.obstacle.data["SawBlade"].scale*game.bg.sprite.scale.x);
     this.x = this.sentX*game.bg.sprite.scale.x + game.width/2;
     this.y = this.sentY*game.bg.sprite.scale.y + game.height/2;
     this.sawBlade.x = this.x + 1.7*game.bg.sprite.scale.x;
@@ -426,7 +423,7 @@ Saw.prototype = Object.create(Phaser.Sprite.prototype);
 Saw.prototype.constructor = Saw;
 Saw.prototype.update = function() {
   this.sawBlade.angle += 20;
-  if (this.sawBlade.scale.x < C.obstacle.assets["SawBlade"].scale*game.bg.sprite.scale.x) {
+  if (this.sawBlade.scale.x < C.obstacle.data["SawBlade"].scale*game.bg.sprite.scale.x) {
     this.sawBlade.scale.setTo(this.sawBlade.scale.x + .02*game.bg.sprite.scale.x);
   }
 };
@@ -436,11 +433,11 @@ function Freeze(game,x,y,name,frame) {
   this.aura = game.add.sprite(this.x,this.y,"FreezeAura");
   game.add.existing(this.aura);
   this.aura.anchor.setTo(.5);
-  this.aura.scale.setTo(C.obstacle.assets["FreezeAura"].scale*game.bg.sprite.scale.x);
+  this.aura.scale.setTo(C.obstacle.data["FreezeAura"].scale*game.bg.sprite.scale.x);
   this.aura.filters = [game.blurX, game.blurY];
   this.syncScale = function() {
-    this.scale.setTo(C.obstacle.assets["Freeze"].scale*game.bg.sprite.scale.x);
-    this.aura.scale.setTo(C.obstacle.assets["FreezeAura"].scale*game.bg.sprite.scale.x);
+    this.scale.setTo(C.obstacle.data["Freeze"].scale*game.bg.sprite.scale.x);
+    this.aura.scale.setTo(C.obstacle.data["FreezeAura"].scale*game.bg.sprite.scale.x);
     this.x = this.sentX*game.bg.sprite.scale.x + game.width/2;
     this.y = this.sentY*game.bg.sprite.scale.y + game.height/2;
     this.aura.x = this.sentX*game.bg.sprite.scale.x + game.width/2;
@@ -514,8 +511,8 @@ class Load {
     Object.keys(C.block.assets).forEach(function(assetName) {
       game.load.image(assetName, C.block.assets[assetName], C.block.width, C.block.height);
     });
-    Object.keys(C.obstacle.assets).forEach(function(assetName) {
-      game.load.image(assetName, C.obstacle.assets[assetName].source);
+    Object.keys(C.obstacle.data).forEach(function(assetName) {
+      game.load.image(assetName, C.obstacle.data[assetName].source);
     });
   }
   create() {
@@ -830,12 +827,12 @@ class MainMenu {
         }
       }*/
       for (var i = 0; i < game.defensiveSpawners.length; i++) {
-        game.defensiveSpawners.children[i].scale.setTo(C.obstacle.assets[game.defensiveSpawners.children[i].type].scale*game.bg.sprite.scale.x);
+        game.defensiveSpawners.children[i].scale.setTo(C.obstacle.data[game.defensiveSpawners.children[i].type].scale*game.bg.sprite.scale.x);
         //game.defensiveSpawners.children[i].reset(game.defensiveSpawners.children[i].width/2, game.defensiveSpawners.children[i].height/2 + game.defensiveSpawners.children[i].height*i);
         game.defensiveSpawners.children[i].reset(C.obstacle.width/2, C.obstacle.height/2 + 150*game.bg.sprite.scale.y*i);
       }
       for (var i = 0; i < game.offensiveSpawners.length; i++) {
-        game.offensiveSpawners.children[i].scale.setTo(C.obstacle.assets[game.offensiveSpawners.children[i].type].scale*game.bg.sprite.scale.x);
+        game.offensiveSpawners.children[i].scale.setTo(C.obstacle.data[game.offensiveSpawners.children[i].type].scale*game.bg.sprite.scale.x);
         game.offensiveSpawners.children[i].reset(game.width - C.obstacle.width/2, C.obstacle.height/2 + 150*game.bg.sprite.scale.y*i);
       }
       game.localObstacles.forEach(function(obstacle) {
