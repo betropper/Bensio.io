@@ -94,8 +94,8 @@ var C = {
     defensive: ["Wall","Freeze"],
     data: {
       "Wall": {
-        source: "assets/red-circle.png",
-        scale: 1,
+        source: "assets/wall.png",
+        scale: .3,
         max: 2
       },
       "Freeze": {
@@ -794,9 +794,8 @@ class MainMenu {
     console.log(input);
     var enter = game.input.keyboard.addKey(Phaser.Keyboard.ENTER);
     //window.addEventListener("resize", function(event) {
-    game.scale.onSizeChange.add(function() {
+    game.adjustSize = function() {
       console.log("tick");
-      //game.width = window.innerWidth*window.devicePixelRatio;
       game.bg.sprite.x = game.width/2;
       game.bg.sprite.y = game.height/2;
       var previousWidth = game.bg.sprite.width;
@@ -852,6 +851,10 @@ class MainMenu {
         input.x = game.world.centerX - C.text.inputStyle.width/2 - C.text.inputStyle.padding;
         input.y = game.world.centerY - C.text.inputStyle.height/2 - C.text.inputStyle.padding;
       }
+    };
+    game.adjustSize();
+    game.scale.onSizeChange.add(function() {
+      game.adjustSize();
     });
     enter.onDown.add(function() {
       C.player.name = input.value || sessionStorage.getItem('userName') || 'Anonymous';
