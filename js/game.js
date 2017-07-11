@@ -249,16 +249,21 @@ function ObstacleSpawner(game,x,y,type,frame) {
   this.filters = [game.blurX, game.blurY];
   this.inputEnabled = true;
   //this.input.enableDrag();
-  this.events.onInputUp.add(function() {
-    if (!this.dragged) {
+
+  this.attach = function(pointer) {
+    console.log(pointer.x,pointer.y);
+    //game.debug.text(pointer.x + " " + pointer.y,200,200);
+    if (!this.dragged && pointer.x < (this.x + this.width/2) && pointer.x > (this.x - this.width/2) && pointer.y > (this.y - this.height/2) && pointer.y < (this.y + this.height/2)) {
       this.homeX = this.x;
       this.homeY = this.y;
       this.dragged = true;
-    } else {
-      this.checkOutOfBounds();
+      this.pointer = pointer;
+    } else if (this.dragged) {
+      this.checkOutOfBounds(pointer);
       this.dragged = false;
+      this.pointer = null;
     }
-  },this);
+  }
   this.createInstanceOf = function() {
     /*if (window[this.obstacleType]) {
       var tempObst = new window[this.obstacleType](game,this.x,this.y,type);
@@ -279,11 +284,13 @@ function ObstacleSpawner(game,x,y,type,frame) {
   }*/
     game.socket.emit('obstacleBought', {player: C.player.name, obstacle: this.obstacleType, x: (this.x-game.width/2)/game.bg.sprite.scale.x, y: (this.y-game.height/2)/game.bg.sprite.scale.y});
   }
-  this.checkOutOfBounds = function() {
+  this.checkOutOfBounds = function(pointer) {
     console.log(this);
     console.log("Checking out of bounds...");
-    this.x = game.input.mousePointer.x;
-    this.y = game.input.mousePointer.y;
+    if (pointer) {
+      this.x = pointer.x;
+      this.y = pointer.y;
+    }
     if (this.x > game.width - ((game.width-game.bg.width)/2) || this.x < (game.width-game.bg.width)/2 || this.y < (game.height-game.bg.height)/2 || this.y > C.game.height - ((game.height-game.bg.height)/2) ) {
       console.log("Failure.");
     } else {
@@ -307,9 +314,9 @@ function ObstacleSpawner(game,x,y,type,frame) {
 ObstacleSpawner.prototype = Object.create(Phaser.Sprite.prototype);
 ObstacleSpawner.prototype.constructor = ObstacleSpawner;
 ObstacleSpawner.prototype.update = function() {
-  if (this.dragged) {
-    this.x = game.input.mousePointer.x
-    this.y = game.input.mousePointer.y
+  if (this.dragged && this.pointer) {
+    this.x = this.pointer.x
+    this.y = this.pointer.y
   }
 };
 
@@ -628,13 +635,6 @@ class MainMenu {
         obstacle.clean();
       });*/
       game.bg.changeBackground(data.bg);
-      var finalText = "High Scores:"
-      for (i = 0; i < 3; i++) {
-        if (data.highScores[i]) {
-          finalText = finalText + "\n" + data.highScores[i][0] + " : " + data.highScores[i][1];
-        }
-      }
-      game.userDisplay.highScores.text = finalText;
     });
     /*game.socket.on('numberChanged',function(number) {
       C.game.number = number;
@@ -683,6 +683,15 @@ class MainMenu {
         game.status = "Betting";
       } else {
         game.status = "Ongoing";
+      }
+      if (game.userDisplay && game.userDisplay.highScores) { 
+        var finalText = "High Scores:"
+        for (i = 0; i < 3; i++) {
+          if (data.highScores[i]) {
+            finalText = finalText + "\n" + data.highScores[i][0] + " : " + data.highScores[i][1];
+          }
+        }
+        game.userDisplay.highScores.text = finalText;
       }
       for (var i = 0; i < game.blocks.length; i++) {
         if (data.paused) {
@@ -755,7 +764,7 @@ class MainMenu {
     });
     game.userDisplay.highScores = game.add.text(game.world.width - 50*game.bg.sprite.scale.x,game.world.height - 50*game.bg.sprite.scale.x,"High Scores:\nnull\nnull\nnull",C.text.scoreStyle);
     game.userDisplay.highScores.anchor.setTo(1);
-    game.userDisplay.currentWorth.resetPosition = function() {
+    game.userDisplay.highScores.resetPosition = function() {
       this.x = game.world.width - 50*game.bg.sprite.scale.x;
       this.y = game.world.height - 50*game.bg.sprite.scale.x;
     }
@@ -813,11 +822,11 @@ class MainMenu {
       for (var i = 0; i < game.defensiveSpawners.length; i++) {
         game.defensiveSpawners.children[i].scale.setTo(C.obstacle.assets[game.defensiveSpawners.children[i].type].scale*game.bg.sprite.scale.x);
         //game.defensiveSpawners.children[i].reset(game.defensiveSpawners.children[i].width/2, game.defensiveSpawners.children[i].height/2 + game.defensiveSpawners.children[i].height*i);
-        game.defensiveSpawners.children[i].reset(C.obstacle.width/2, C.obstacle.height/2 + C.obstacle.height*i);
+        game.defensiveSpawners.children[i].reset(C.obstacle.width/2, C.obstacle.height/2 + 100*game.bg.sprite.scale.y*i);
       }
       for (var i = 0; i < game.offensiveSpawners.length; i++) {
         game.offensiveSpawners.children[i].scale.setTo(C.obstacle.assets[game.offensiveSpawners.children[i].type].scale*game.bg.sprite.scale.x);
-        game.offensiveSpawners.children[i].reset(game.width - C.obstacle.width/2, C.obstacle.height/2 + C.obstacle.height*i);
+        game.offensiveSpawners.children[i].reset(game.width - C.obstacle.width/2, C.obstacle.height/2 + 100*game.bg.sprite.scale.y*i);
       }
       game.localObstacles.forEach(function(obstacle) {
         obstacle.syncScale();
@@ -826,8 +835,10 @@ class MainMenu {
         block.scale.setTo(game.bg.sprite.scale.x);
       });
       Object.keys(game.userDisplay).forEach(function(displayKey) {
-        game.userDisplay[displayKey].resetPosition();
-        game.userDisplay[displayKey].scale.setTo(game.bg.sprite.scale.x);
+        if (game.userDisplay[displayKey] && game.userDisplay[displayKey].resetPosition) {
+          game.userDisplay[displayKey].resetPosition();
+          game.userDisplay[displayKey].scale.setTo(game.bg.sprite.scale.x);
+        }
       });
       if (input) {
         input.x = game.world.centerX - C.text.inputStyle.width/2 - C.text.inputStyle.padding;
@@ -861,9 +872,21 @@ class Play {
     //game.clickCount.revive();
     game.offensiveSpawners.forEach(function(spawner) {
       spawner.inputEnabled = true;
+      if (Phaser.device.desktop) {
+        spawner.events.onInputUp.add(spawner.attach,spawner);
+      } else {
+        spawner.input.enableDrag(true);
+        spawner.events.onDragStop.add(spawner.checkOutOfBounds,spawner);
+      }
     });
     game.defensiveSpawners.forEach(function(spawner) {
       spawner.inputEnabled = true;
+      if (Phaser.device.desktop) {
+        spawner.events.onInputUp.add(spawner.attach,spawner);
+      } else {
+        spawner.input.enableDrag(true);
+        spawner.events.onDragStop.add(spawner.checkOutOfBounds,spawner);
+      }
     });
     //Deal with socket messages.
   }

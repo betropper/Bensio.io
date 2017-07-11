@@ -8,7 +8,7 @@ app.get('/',function(req, res) {
   res.sendFile(__dirname + '/index.html');
 });
 app.use('/',express.static(__dirname + '/'));
-http.listen(8061);
+http.listen(3000);
 
 function getRandomInt(min, max) {
   min = Math.ceil(min);
@@ -30,6 +30,7 @@ var S = {
   //testnumber: 0,
   roundChanging: false,
   online: {},
+  highScores: [],
   registeredNames: [],
   bgs: ['stars','west','sunset'],
   currentbg: 'stars',
@@ -56,6 +57,16 @@ var S = {
   obstacleCount: 0,
   winner: ''
 }
+  S.highScores.sort(function(a, b) {
+      return b[1] - a[1];
+  });
+  S.highScores.update = function() {
+    S.highScores.splice(0,S.highScores.length)
+    for (var player in S.online) {
+        S.highScores.push([S.online[player].name, S.online[player].buxio]);
+    }
+    S.highScores.sort()
+  }
 function Obstacle(x,y,type,material) {
   this.type = type;
   S.obstacleCount++
@@ -305,7 +316,8 @@ world.on('postStep', function() {
       velocities: world.blocks.velocities,
       deadBlocks: world.deadBlocks,
       obstacles: S.obstacleData,
-      paused: world.stunned
+      paused: world.stunned,
+      highScores: S.highScores
     });
     //console.log(world.blocks.velocities[0]);
   }
@@ -375,14 +387,13 @@ io.sockets.on('connection', function(socket) {
   console.log(socket.id);
   socket.emit('firstMessage', {
     //number: S.testnumber,
-    online: S.online,
     bg: S.currentbg,
     positions: world.blocks.positions,
     angles: world.blocks.angles,
     velocities: world.blocks.velocities,
-    deadBlocks: world.deadBlocks,
-    paused: world.stunned
+    deadBlocks: world.deadBlocks
   });
+  console.log("Sent a first message");
   socket.on('bet', function(data) {
     if (S.online[socket.id] && data.player && data.color && world.stunned) {
       console.log(data.player + ' has placed a bet.');
@@ -417,6 +428,7 @@ io.sockets.on('connection', function(socket) {
       socket: socket
     };
     console.log(name + " has registered their name.");
+    S.highScores.update();
     console.log(S.online);
   });
   socket.on('disconnect', function(err) {
@@ -427,6 +439,7 @@ io.sockets.on('connection', function(socket) {
       delete S.online[socket.id];
       console.log(S.online);
     }
+    S.highScores.update();
   });
 });
 
@@ -434,13 +447,12 @@ var changeRound = function() {
   S.roundChanging = false;
   console.log(S.winner);
   var buxioList = {};
-  S.highScores = [];
   var betterCount = 0;
   Object.keys(S.block.betPools).forEach(function(pool) {
     betterCount += S.block.betPools[pool];
   });
   var payoutPool = betterCount * 10;
-  var winnerPayout = payoutPool/S.block.betPools[S.winner];
+  var winnerPayout = Math.ceil(payoutPool/S.block.betPools[S.winner]);
   Object.keys(S.block.betPools).forEach(function(pool) {
     S.block.betPools[pool] = 0;
   });
@@ -468,15 +480,9 @@ var changeRound = function() {
     block.body.angle = 0;
     block.revive();
   });
-  for (var player in S.online) {
-      S.highScores.push([S.online[player].name, S.online[player].buxio]);
-  }
-  S.highScores.sort(function(a, b) {
-      return b[1] - a[1];
-  });
+  S.highScores.update();
   io.emit('newRound',{
     bg: newbg,
-    highScores: S.highScores.sort()
   });
   buxioList = {};
   world.stunned = true;
