@@ -872,7 +872,7 @@ class Play {
     //game.clickCount.revive();
     game.offensiveSpawners.forEach(function(spawner) {
       spawner.inputEnabled = true;
-      if (Phaser.device.desktop) {
+      if (Phaser.Device.desktop) {
         spawner.events.onInputUp.add(spawner.attach,spawner);
       } else {
         spawner.input.enableDrag(true);
@@ -881,7 +881,7 @@ class Play {
     });
     game.defensiveSpawners.forEach(function(spawner) {
       spawner.inputEnabled = true;
-      if (Phaser.device.desktop) {
+      if (Phaser.Device.desktop) {
         spawner.events.onInputUp.add(spawner.attach,spawner);
       } else {
         spawner.input.enableDrag(true);
