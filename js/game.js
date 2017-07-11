@@ -63,7 +63,13 @@ var C = {
     }
   },
   player: {
-    name: 'Anonymous'
+    name: 'Anonymous',
+    obstaclesOwned: {
+      Freeze: 0,
+      Wall: 0,
+      Saw: 0,
+      Speaker: 0
+    }
   },
   block: {
     width: 72,
@@ -89,27 +95,31 @@ var C = {
     assets: {
       "Wall": {
         source: "assets/red-circle.png",
-        scale: 1
+        scale: 1,
+        max: 2
       },
       "Freeze": {
         source: "assets/freeze.png",
-        scale: .3
+        scale: .3,
+        max: 2
       },
       "FreezeAura": {
         source: "assets/freezeaura.png",
-        scale: .2
+        scale: .2,
       },
       "Saw": {
         source: "assets/sawbody.png",
-        scale: .3
+        scale: .3,
+        max: 2
       },
       "SawBlade": {
         source: "assets/sawblade.png",
-        scale: 1.2
+        scale: 1.2,
       },
       "Speaker": {
         source: "assets/speaker.png",
-        scale: .4
+        scale: .4,
+        max: 2
       }
     }
   }
@@ -174,6 +184,9 @@ function Block(game,x,y,color,frame) {
             game.blocks.children[i].tint = 0xffffff;
           }
           this.tint = 0x686868;
+          game.userDisplay.noBets.alpha = 0;
+          game.userDisplay.bettingOn.loadTexture(this.key);
+          game.userDisplay.bettingOn.alpha = 1;
           game.socket.emit('bet', {player: C.player.name, color: this.key});
         },this);
         this.events.onInputOver.add(function() {
@@ -250,18 +263,15 @@ function ObstacleSpawner(game,x,y,type,frame) {
   this.inputEnabled = true;
   //this.input.enableDrag();
 
-  this.attach = function(pointer) {
-    console.log(pointer.x,pointer.y);
+  this.attach = function() {
     //game.debug.text(pointer.x + " " + pointer.y,200,200);
-    if (!this.dragged && pointer.x < (this.x + this.width/2) && pointer.x > (this.x - this.width/2) && pointer.y > (this.y - this.height/2) && pointer.y < (this.y + this.height/2)) {
+    if (!this.dragged) {
       this.homeX = this.x;
       this.homeY = this.y;
       this.dragged = true;
-      this.pointer = pointer;
     } else if (this.dragged) {
-      this.checkOutOfBounds(pointer);
+      this.checkOutOfBounds();
       this.dragged = false;
-      this.pointer = null;
     }
   }
   this.createInstanceOf = function() {
@@ -283,6 +293,10 @@ function ObstacleSpawner(game,x,y,type,frame) {
       new Obstacle(game,this.x,this.y,type,frame);
   }*/
     game.socket.emit('obstacleBought', {player: C.player.name, obstacle: this.obstacleType, x: (this.x-game.width/2)/game.bg.sprite.scale.x, y: (this.y-game.height/2)/game.bg.sprite.scale.y});
+    C.player.obstaclesOwned[this.obstacleType]++
+    if (C.player.obstaclesOwned[this.obstacleType] >= C.obstacle.assets[type].max) {
+      this.kill();
+    }
   }
   this.checkOutOfBounds = function(pointer) {
     console.log(this);
@@ -291,7 +305,7 @@ function ObstacleSpawner(game,x,y,type,frame) {
       this.x = pointer.x;
       this.y = pointer.y;
     }
-    if (this.x > game.width - ((game.width-game.bg.width)/2) || this.x < (game.width-game.bg.width)/2 || this.y < (game.height-game.bg.height)/2 || this.y > C.game.height - ((game.height-game.bg.height)/2) ) {
+    if (this.x > game.width - ((game.width-game.bg.sprite.width)/2) || this.x < (game.width-game.bg.sprite.width)/2 || this.y < (game.height-game.bg.sprite.height)/2 || this.y > game.height - ((game.height-game.bg.sprite.height)/2) ) {
       console.log("Failure.");
     } else {
       console.log("Success.");
@@ -314,9 +328,9 @@ function ObstacleSpawner(game,x,y,type,frame) {
 ObstacleSpawner.prototype = Object.create(Phaser.Sprite.prototype);
 ObstacleSpawner.prototype.constructor = ObstacleSpawner;
 ObstacleSpawner.prototype.update = function() {
-  if (this.dragged && this.pointer) {
-    this.x = this.pointer.x
-    this.y = this.pointer.y
+  if (this.dragged) {
+    this.x = game.input.mousePointer.x
+    this.y = game.input.mousePointer.y
   }
 };
 
@@ -631,10 +645,27 @@ class MainMenu {
           game.world.bringToTop(block);
         }
       });
+      game.offensiveSpawners.forEach(function(spawner) {
+        if (!spawner.alive) {
+          spawner.revive();
+          game.world.bringToTop(spawner);
+        }
+      });
+      game.defensiveSpawners.forEach(function(spawner) {
+        if (!spawner.alive) {
+          spawner.revive();
+          game.world.bringToTop(spawner);
+        }
+      });
       /*game.localObstacles.forEach(function(obstacle) {
         obstacle.clean();
       });*/
       game.bg.changeBackground(data.bg);
+      for (var obstacle in C.player.obstaclesOwned) {
+          C.player.obstaclesOwned[obstacle] = 0;
+      }
+      game.userDisplay.bettingOn.alpha = 0;
+      game.userDisplay.noBets.alpha = 1;
     });
     /*game.socket.on('numberChanged',function(number) {
       C.game.number = number;
@@ -677,7 +708,6 @@ class MainMenu {
     });
     game.socket.on('worldTick',function(data) { 
       if (data.deadBlocks && data.deadBlocks.length >= game.blocks.length-1) {
-        console.log("EVERYONE DIED BUT ONE.");
         game.status = "Finishing";
       } else if (data.paused) {
         game.status = "Betting";
@@ -751,35 +781,13 @@ class MainMenu {
           }
         }*/
     });
-    //Create the info to display to the user.
     game.userDisplay = {};
-    game.userDisplay.currentWorth = game.add.text(50*game.bg.sprite.scale.x,game.world.height - 100*game.bg.sprite.scale.x,"Buxio: 0",C.text.style);
-    game.userDisplay.currentWorth.anchor.setTo(0);
-    game.userDisplay.currentWorth.resetPosition = function() {
-      this.x = 50*game.bg.sprite.scale.x;
-      this.y = game.world.height - 100*game.bg.sprite.scale.x;
-    }
-    game.socket.on('buxioChange',function(bux) {
-      game.userDisplay.currentWorth.text = "Buxio: " + bux;
-    });
-    game.userDisplay.highScores = game.add.text(game.world.width - 50*game.bg.sprite.scale.x,game.world.height - 50*game.bg.sprite.scale.x,"High Scores:\nnull\nnull\nnull",C.text.scoreStyle);
-    game.userDisplay.highScores.anchor.setTo(1);
-    game.userDisplay.highScores.resetPosition = function() {
-      this.x = game.world.width - 50*game.bg.sprite.scale.x;
-      this.y = game.world.height - 50*game.bg.sprite.scale.x;
-    }
     game.userDisplay.bensioTitle = game.add.text(game.world.centerX,game.world.centerY - 200*game.bg.sprite.scale.x,"bensio",C.text.style);
     game.userDisplay.bensioTitle.anchor.setTo(.5);
     game.userDisplay.bensioTitle.resetPosition = function() {
       this.x = game.world.centerX;
       this.y = game.world.centerY - 200*game.bg.sprite.scale.x;
     }
-    Object.keys(game.userDisplay).forEach(function(displayKey) {
-      game.userDisplay[displayKey].homeX = game.userDisplay[displayKey].x;
-      game.userDisplay[displayKey].homeY = game.userDisplay[displayKey].y;
-      game.userDisplay[displayKey].scale.setTo(game.bg.sprite.scale.x);
-    });
-
     var input = game.add.inputField(game.world.centerX - C.text.inputStyle.width/2 - C.text.inputStyle.padding, game.world.centerY - C.text.inputStyle.height/2 - C.text.inputStyle.padding, C.text.inputStyle);
     input.blockInput = false;
     game.world.bringToTop(input);
@@ -870,6 +878,40 @@ class Play {
     game.userDisplay.bensioTitle.alpha = 0;
     game.clear();
     //game.clickCount.revive();
+    //Create the user's display
+    game.userDisplay.currentWorth = game.add.text(50*game.bg.sprite.scale.x,game.world.height - 100*game.bg.sprite.scale.x,"Buxio: 0",C.text.style);
+    game.userDisplay.currentWorth.anchor.setTo(0);
+    game.userDisplay.currentWorth.resetPosition = function() {
+      this.x = 50*game.bg.sprite.scale.x;
+      this.y = game.world.height - 100*game.bg.sprite.scale.x;
+    }
+    game.socket.on('buxioChange',function(bux) {
+      game.userDisplay.currentWorth.text = "Buxio: " + bux;
+    });
+    game.userDisplay.highScores = game.add.text(game.world.width - 50*game.bg.sprite.scale.x,game.world.height - 50*game.bg.sprite.scale.x,"High Scores:",C.text.scoreStyle);
+    game.userDisplay.highScores.anchor.setTo(1);
+    game.userDisplay.highScores.resetPosition = function() {
+      this.x = game.world.width - 50*game.bg.sprite.scale.x;
+      this.y = game.world.height - 50*game.bg.sprite.scale.x;
+    }
+    game.userDisplay.noBets = game.add.text(game.world.centerX,50*game.bg.sprite.scale.x,"Currently betting on None!",C.text.style);
+    game.userDisplay.noBets.anchor.setTo(.5);
+    game.userDisplay.noBets.resetPosition = function() {
+      this.x = game.world.centerX;
+      this.y = 50*game.bg.sprite.scale.x;
+    }
+    game.userDisplay.bettingOn = game.add.sprite(game.world.centerX,50*game.bg.sprite.scale.x,"red");
+    game.userDisplay.bettingOn.anchor.setTo(.5);
+    game.userDisplay.bettingOn.alpha = 0;
+    game.userDisplay.bettingOn.resetPosition = function() {
+      this.x = game.world.centerX;
+      this.y = 50*game.bg.sprite.scale.x;
+    }
+    Object.keys(game.userDisplay).forEach(function(displayKey) {
+      game.userDisplay[displayKey].homeX = game.userDisplay[displayKey].x;
+      game.userDisplay[displayKey].homeY = game.userDisplay[displayKey].y;
+      game.userDisplay[displayKey].scale.setTo(game.bg.sprite.scale.x);
+    });
     game.offensiveSpawners.forEach(function(spawner) {
       spawner.inputEnabled = true;
       if (Phaser.Device.desktop) {

@@ -134,19 +134,19 @@ function spawnObstacle(x,y,type,owner) {
   switch (type) {
     case "Saw":
       var newObstacle = new Saw(x,y,type)
-      //S.online[owner].obstaclesOwned.Saw.push(newObstacle);
+      S.online[owner].obstaclesOwned.Saw++
       break;
     case "Wall":
       var newObstacle = new Wall(x,y,type)
-      //S.online[owner].obstaclesOwned.Wall.push(newObstacle);
+      S.online[owner].obstaclesOwned.Wall++
       break;
     case "Freeze":
       var newObstacle = new Freeze(x,y,type)
-      //S.online[owner].obstaclesOwned.Freeze.push(newObstacle);
+      S.online[owner].obstaclesOwned.Freeze++
       break;
     case "Speaker":
       var newObstacle = new Speaker(x,y,type)
-      //S.online[owner].obstaclesOwned.Speaker.push(newObstacle);
+      S.online[owner].obstaclesOwned.Speaker++
       break;
   }
   //console.log("New obstacle list",S.obstacles);
@@ -404,7 +404,9 @@ io.sockets.on('connection', function(socket) {
   socket.on('obstacleBought', function(data) {
     if (S.online[socket.id] && !world.stunned) {
       console.log(data.player + ' has placed a ' + data.obstacle  + '.');
-      spawnObstacle(data.x,data.y,data.obstacle,socket.id);
+      if (S.online[socket.id].obstaclesOwned[data.obstacle] < 2) {
+        spawnObstacle(data.x,data.y,data.obstacle,socket.id);
+      }
       //io.sockets.emit('obstaclePlaced', {x: data.x, y: data.y, obstacle: newestObstacle});
       //io.to(socket.id).emit('obstacleVerified', newestObstacle.obstacleNumber);
     }
@@ -421,9 +423,10 @@ io.sockets.on('connection', function(socket) {
       buxio: 0,
       name: name,
       obstaclesOwned: {
-        Freeze: [],
-        Wall: [],
-        Saw: []
+        Freeze: 0,
+        Wall: 0,
+        Saw: 0,
+        Speaker: 0
       },
       socket: socket
     };
@@ -463,6 +466,9 @@ var changeRound = function() {
       console.log(S.online[playerId].name + " just won! Total Buxio:",S.online[playerId].buxio);
       S.online[playerId].socket.emit("buxioChange", S.online[playerId].buxio);
       delete S.online[playerId].bettingOn;
+    }
+    for (var obstacle in S.online[playerId].obstaclesOwned) {
+        S.online[playerId].obstaclesOwned[obstacle] = 0;
     }
   });
   for (i = S.obstacles.length-1; i >= 0; i--) {
