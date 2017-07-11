@@ -33,6 +33,11 @@ var C = {
       fill: "#ffffff",
       font: '50px Montserrat'
     },
+    scoreStyle: {
+      align: 'center',
+      fill: "#ffffff",
+      font: '30px Montserrat'
+    },
     inputStyle: {
       fill: "#000",
       font: '24px Helvetica',
@@ -623,6 +628,13 @@ class MainMenu {
         obstacle.clean();
       });*/
       game.bg.changeBackground(data.bg);
+      var finalText = "High Scores:"
+      for (i = 0; i < 3; i++) {
+        if (data.highScores[i]) {
+          finalText = finalText + "\n" + data.highScores[i][0] + " : " + data.highScores[i][1];
+        }
+      }
+      game.userDisplay.highScores.text = finalText;
     });
     /*game.socket.on('numberChanged',function(number) {
       C.game.number = number;
@@ -732,15 +744,21 @@ class MainMenu {
     });
     //Create the info to display to the user.
     game.userDisplay = {};
-    game.userDisplay.currentWorth = game.add.text(0,game.world.height - 100*game.bg.sprite.scale.x,"Buxio: 0",C.text.style);
+    game.userDisplay.currentWorth = game.add.text(50*game.bg.sprite.scale.x,game.world.height - 100*game.bg.sprite.scale.x,"Buxio: 0",C.text.style);
     game.userDisplay.currentWorth.anchor.setTo(0);
     game.userDisplay.currentWorth.resetPosition = function() {
-      this.x = 0;
+      this.x = 50*game.bg.sprite.scale.x;
       this.y = game.world.height - 100*game.bg.sprite.scale.x;
     }
     game.socket.on('buxioChange',function(bux) {
       game.userDisplay.currentWorth.text = "Buxio: " + bux;
     });
+    game.userDisplay.highScores = game.add.text(game.world.width - 50*game.bg.sprite.scale.x,game.world.height - 50*game.bg.sprite.scale.x,"High Scores:\nnull\nnull\nnull",C.text.scoreStyle);
+    game.userDisplay.highScores.anchor.setTo(1);
+    game.userDisplay.currentWorth.resetPosition = function() {
+      this.x = game.world.width - 50*game.bg.sprite.scale.x;
+      this.y = game.world.height - 50*game.bg.sprite.scale.x;
+    }
     game.userDisplay.bensioTitle = game.add.text(game.world.centerX,game.world.centerY - 200*game.bg.sprite.scale.x,"bensio",C.text.style);
     game.userDisplay.bensioTitle.anchor.setTo(.5);
     game.userDisplay.bensioTitle.resetPosition = function() {
