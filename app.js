@@ -57,15 +57,14 @@ var S = {
   obstacleCount: 0,
   winner: ''
 }
-  S.highScores.sort(function(a, b) {
-      return a[1] - b[1];
-  });
   S.highScores.update = function() {
     S.highScores.splice(0,S.highScores.length)
     for (var player in S.online) {
         S.highScores.push([S.online[player].name, S.online[player].buxio]);
     }
-    S.highScores.sort()
+    S.highScores.sort(function(a, b) {
+        return b[1] - a[1];
+    });
   }
 function Obstacle(x,y,type,material) {
   this.type = type;
