@@ -69,7 +69,8 @@ var C = {
       Wall: 0,
       Saw: 0,
       Speaker: 0
-    }
+    },
+    bettingOn: ''
   },
   block: {
     width: 72,
@@ -82,10 +83,12 @@ var C = {
       "orange": "assets/orangesquare.png"
     },
     skins: {
-      "monacle": "assets/skins/dapper.png",
-      "6die": "assets/skins/6die.png"
+      "dapper": "assets/skins/dapper.png",
+      "dice": "assets/skins/6die.png",
+      "emu": "assets/skins/emu.png"
     },
-    names: ["red","blue","green","orange"]
+    names: ["red","blue","green","orange"],
+    hp: []
   },
   obstacle: {
     width: 72,
@@ -173,10 +176,10 @@ function Block(game,x,y,color,frame) {
         if (!this.alive) {
           this.revive();
         }
-        //this.filters.push(new PIXI.filters.GlowFilter(100, 100, 50, 500, 50, 0x008080));
-        
+        C.player.bettingOn = '';
         game.userDisplay.bensioTitle.betStateTween = game.add.tween(game.userDisplay.bensioTitle).to({y: game.world.centerY, alpha: 1}, 1000, Phaser.Easing.Linear.None, true)
         game.userDisplay.bensioTitle.text = "Click on a block to join its team."
+        game.userDisplay.noBets.text = ""
         this.inputEnabled = true;
         this.bettingEnabled = true;
         this.events.onInputUp.add(function() {
@@ -187,6 +190,8 @@ function Block(game,x,y,color,frame) {
           game.userDisplay.noBets.alpha = 0;
           game.userDisplay.bettingOn.loadTexture(this.key);
           game.userDisplay.bettingOn.alpha = 1;
+          game.userDisplay.bettingHP.alpha = 1;
+          C.player.bettingOn = this.key;
           game.socket.emit('bet', {player: C.player.name, color: this.key});
         },this);
         this.events.onInputOver.add(function() {
@@ -206,6 +211,10 @@ function Block(game,x,y,color,frame) {
         }
         game.userDisplay.bensioTitle.alpha = 0;
         game.userDisplay.bensioTitle.text = "bensio";
+        if (game.userDisplay.bettingOn.alpha == 0) {
+          game.userDisplay.noBets.alpha = 1;
+        }
+        game.userDisplay.noBets.text = "No side chosen!"
         game.userDisplay.bensioTitle.y = game.world.centerY - 200;
         this.inputEnabled = false;
         this.bettingEnabled = false;
@@ -511,6 +520,9 @@ class Load {
     Object.keys(C.block.assets).forEach(function(assetName) {
       game.load.image(assetName, C.block.assets[assetName], C.block.width, C.block.height);
     });
+    Object.keys(C.block.skins).forEach(function(assetName) {
+      game.load.image(assetName, C.block.skins[assetName], C.block.width, C.block.height);
+    });
     Object.keys(C.obstacle.data).forEach(function(assetName) {
       game.load.image(assetName, C.obstacle.data[assetName].source);
     });
@@ -664,6 +676,7 @@ class MainMenu {
           C.player.obstaclesOwned[obstacle] = 0;
       }
       game.userDisplay.bettingOn.alpha = 0;
+      game.userDisplay.bettingHP.alpha = 0;
       game.userDisplay.noBets.alpha = 1;
     });
     /*game.socket.on('numberChanged',function(number) {
@@ -706,7 +719,18 @@ class MainMenu {
       dyingBlock.kill();
     });
     game.socket.on('worldTick',function(data) { 
-      if (data.deadBlocks && data.deadBlocks.length >= game.blocks.length-1) {
+      for (i = 0; i < data.hp.length; i++) {
+        if (data.hp[i] <= 0 && game.blocks.deadBlocks.indexOf(i) < 0) {
+          game.blocks.deadBlocks.push(i);
+        } else if (data.hp[i] > 0 && game.blocks.deadBlocks.indexOf(i) > -1) {
+          game.blocks.deadBlocks.splice(game.blocks.deadBlocks.indexOf(i),1);
+        }
+      }
+      C.block.hp = data.hp;
+      if (game.userDisplay.bettingHP && C.block.names.indexOf(C.player.bettingOn) > -1) {
+        game.userDisplay.bettingHP.text = C.block.hp[C.block.names.indexOf(C.player.bettingOn)] + " HP";
+      }
+      if (game.blocks.deadBlocks.length >= game.blocks.length-1) {
         game.status = "Finishing";
       } else if (data.paused) {
         game.status = "Betting";
@@ -726,11 +750,9 @@ class MainMenu {
         if (data.paused) {
           game.blocks.children[i].revive();
         }
-        //Include indexOf for IE later.
-        
-        if (data.deadBlocks && data.deadBlocks.indexOf(i) > -1 && game.blocks.children[i].alive && !game.blocks.children[i].winner) {
+        //Include indexOf for IE later. 
+        if (game.blocks.deadBlocks.indexOf(i) > -1 && game.blocks.children[i].alive && !game.blocks.children[i].winner) {
           game.blocks.children[i].lose();
-          game.blocks.deadBlocks = data.deadBlocks;
         } else if (game.blocks.children[i].alive && game.status != "Finishing") {
           game.blocks.children[i].syncBlock(data.positions[i][0], data.positions[i][1],data.angles[i]);
           if (data.paused && !game.blocks.children[i].bettingEnabled) {
@@ -882,14 +904,14 @@ class Play {
     game.clear();
     //game.clickCount.revive();
     //Create the user's display
-    game.userDisplay.currentWorth = game.add.text(50*game.bg.sprite.scale.x,game.world.height - 100*game.bg.sprite.scale.x,"Buxio: 0",C.text.style);
+    game.userDisplay.currentWorth = game.add.text(50*game.bg.sprite.scale.x,game.world.height - 100*game.bg.sprite.scale.x,"Score: 0",C.text.style);
     game.userDisplay.currentWorth.anchor.setTo(0);
     game.userDisplay.currentWorth.resetPosition = function() {
       this.x = 50*game.bg.sprite.scale.x;
       this.y = game.world.height - 100*game.bg.sprite.scale.x;
     }
     game.socket.on('buxioChange',function(bux) {
-      game.userDisplay.currentWorth.text = "Buxio: " + bux;
+      game.userDisplay.currentWorth.text = "Score: " + bux;
     });
     game.userDisplay.highScores = game.add.text(game.world.width - 50*game.bg.sprite.scale.x,game.world.height - 50*game.bg.sprite.scale.x,"High Scores:",C.text.scoreStyle);
     game.userDisplay.highScores.anchor.setTo(1);
@@ -897,18 +919,25 @@ class Play {
       this.x = game.world.width - 50*game.bg.sprite.scale.x;
       this.y = game.world.height - 50*game.bg.sprite.scale.x;
     }
-    game.userDisplay.noBets = game.add.text(game.world.centerX,50*game.bg.sprite.scale.x,"Currently betting on None!",C.text.style);
+    game.userDisplay.noBets = game.add.text(game.world.centerX,50*game.bg.sprite.scale.x,"Game in Progress...",C.text.style);
     game.userDisplay.noBets.anchor.setTo(.5);
     game.userDisplay.noBets.resetPosition = function() {
       this.x = game.world.centerX;
       this.y = 50*game.bg.sprite.scale.x;
     }
-    game.userDisplay.bettingOn = game.add.sprite(game.world.centerX,50*game.bg.sprite.scale.x,"red");
+    game.userDisplay.bettingOn = game.add.sprite(game.world.centerX - 60*game.bg.sprite.scale.x,60*game.bg.sprite.scale.y,"red");
     game.userDisplay.bettingOn.anchor.setTo(.5);
     game.userDisplay.bettingOn.alpha = 0;
     game.userDisplay.bettingOn.resetPosition = function() {
-      this.x = game.world.centerX;
-      this.y = 50*game.bg.sprite.scale.x;
+      this.x = game.world.centerX - 60*game.bg.sprite.scale.x;
+      this.y = 60*game.bg.sprite.scale.x;
+    }
+    game.userDisplay.bettingHP = game.add.text(game.world.centerX + 60*game.bg.sprite.scale.x,60*game.bg.sprite.scale.y,"40 HP",C.text.style);
+    game.userDisplay.bettingHP.anchor.setTo(.5);
+    game.userDisplay.bettingHP.alpha = 0;
+    game.userDisplay.bettingHP.resetPosition = function() {
+      this.x = game.world.centerX + 60*game.bg.sprite.scale.x;
+      this.y = 60*game.bg.sprite.scale.x;
     }
     Object.keys(game.userDisplay).forEach(function(displayKey) {
       game.userDisplay[displayKey].homeX = game.userDisplay[displayKey].x;

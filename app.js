@@ -45,6 +45,11 @@ var S = {
       {x: 1008 - 1280/2, y: 744 - 920/2, vx: getRandomInt(-60,60), vy: getRandomInt(-60,60)}
     ],
     names: ["red","blue","green","orange"],
+    skins: {
+      "dapper": ["dapper","fancy","monacle"],
+      "dice": ["dice","roll"],
+      "kiwi": ["kiwi","new zealand", "newzealand"]
+    },
     betPools: {
       "red": 0,
       "blue": 0,
@@ -327,7 +332,12 @@ world.on('postStep', function() {
       positions: world.blocks.positions,
       angles: world.blocks.angles,
       velocities: world.blocks.velocities,
-      deadBlocks: world.deadBlocks,
+      hp: [
+        world.blocks[0].hp,
+        world.blocks[1].hp,
+        world.blocks[2].hp,
+        world.blocks[3].hp
+      ],
       obstacles: S.obstacleData,
       paused: world.stunned,
       highScores: S.highScores
@@ -354,8 +364,8 @@ world.on('beginContact', function(evt) {
     }
     if (bodyB.stunning && bodyB.parent) {
       bodyB.parent.die();
-      S.obstacles.splice(S.obstacles.indexOf(bodyB.parent),1);
-      S.obstacleData.splice(S.obstacleData.indexOf(bodyB.parent.info),1);
+      //S.obstacles.splice(S.obstacles.indexOf(bodyB.parent),1);
+      //S.obstacleData.splice(S.obstacleData.indexOf(bodyB.parent.info),1);
       bodyA.parent.stunned = true;
       setTimeout(function(stunnedBlock) {
         stunnedBlock.stunned = false;
@@ -377,8 +387,8 @@ world.on('beginContact', function(evt) {
     }
     if (bodyA.stunning && bodyA.parent) {
       bodyA.parent.die();
-      S.obstacles.splice(S.obstacles.indexOf(bodyA.parent),1);
-      S.obstacleData.splice(S.obstacleData.indexOf(bodyA.parent.info),1);
+      //S.obstacles.splice(S.obstacles.indexOf(bodyA.parent),1);
+      //S.obstacleData.splice(S.obstacleData.indexOf(bodyA.parent.info),1);
       bodyB.parent.stunned = true;
       setTimeout(function(stunnedBlock) {
         stunnedBlock.stunned = false;
@@ -431,6 +441,9 @@ io.sockets.on('connection', function(socket) {
       namenum++
     }
     console.log(S.registeredNames);
+    for (var skin in S.skins) {
+
+    }
     S.registeredNames.push(name);
     S.online[socket.id] = {
       buxio: 0,
