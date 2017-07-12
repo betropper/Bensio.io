@@ -85,7 +85,7 @@ var C = {
     skins: {
       "dapper": "assets/skins/dapper.png",
       "dice": "assets/skins/6die.png",
-      "emu": "assets/skins/emu.png"
+      "kiwi": "assets/skins/kiwi.png"
     },
     names: ["red","blue","green","orange"],
     hp: []
@@ -169,6 +169,29 @@ function Block(game,x,y,color,frame) {
     this.body.y = y;*/
     //this.body.angle = angle * (180/Math.PI);
     this.rotation = rotation;
+    if (this.skin) {
+      this.skin.x = this.x;
+      this.skin.y = this.y;
+      this.skin.rotation = this.rotation;
+    }
+  }
+  this.changeSkin = function(skin) {
+    if (skin == 'None') {
+      if (this.skin) {
+        this.skin.destroy();
+      } else {
+        return;
+      }
+    } else if (!this.skin) {
+      this.skin = game.add.sprite(this.x, this.y, skin);
+      this.skin.anchor.setTo(.5);
+      this.skin.rotation = this.rotation;
+      this.skin.width = this.width;
+      this.skin.height = this.height;
+    } else if (skin != this.skin.key) {
+      this.skin.loadTexture(skin);
+    }
+    game.world.bringToTop(this.skin);
   }
   this.enableBetting = function(state) {
     if (game.state.current == "Play") {
@@ -239,10 +262,22 @@ Block.prototype = Object.create(Phaser.Sprite.prototype);
 Block.prototype.constructor = Block;
 Block.prototype.update = function() {
     //this.constrainVelocity(C.block.velocity);
+
+    if (this.skin) {
+      this.skin.height = this.height;
+      this.skin.width = this.width;
+    }
     if (this.dying) {
       this.angle += 10;
       this.alpha -= .05;
+      if (this.skin) {
+        this.angle += 10;
+        this.alpha -= .05;
+      }
       if (this.alpha <= 0) {
+        if (this.skin) {
+          this.skin.destroy();
+        }
         this.kill();
         this.dying = false;
         this.alpha = 1;
@@ -747,6 +782,9 @@ class MainMenu {
         game.userDisplay.highScores.text = finalText;
       }
       for (var i = 0; i < game.blocks.length; i++) {
+        if (game.blocks.children[i].skin != data.skins[i]) {
+          game.blocks.children[i].changeSkin(data.skins[i]);
+        }
         if (data.paused) {
           game.blocks.children[i].revive();
         }

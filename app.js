@@ -51,10 +51,10 @@ var S = {
       "kiwi": ["kiwi","new zealand", "newzealand"]
     },
     betPools: {
-      "red": 0,
-      "blue": 0,
-      "green": 0,
-      "orange": 0
+      "red": [],
+      "blue": [],
+      "green": [],
+      "orange": []
     }
   },
   obstacles: [],
@@ -169,6 +169,8 @@ function spawnObstacle(x,y,type,owner) {
 
 function Block(count) {
     this.count = count;
+    this.skin = 'None';
+    this.highestBidder = ['None',0];
     this.body = new p2.Body({
       mass: 0.1,
       position: [S.block.positions[count].x, S.block.positions[count].y],
@@ -338,6 +340,12 @@ world.on('postStep', function() {
         world.blocks[2].hp,
         world.blocks[3].hp
       ],
+      skins: [
+        world.blocks[0].skin,
+        world.blocks[1].skin,
+        world.blocks[2].skin,
+        world.blocks[3].skin
+      ],
       obstacles: S.obstacleData,
       paused: world.stunned,
       highScores: S.highScores
@@ -418,10 +426,36 @@ io.sockets.on('connection', function(socket) {
   });
   console.log("Sent a first message");
   socket.on('bet', function(data) {
-    if (S.online[socket.id] && data.player && data.color && world.stunned) {
+    if (S.online[socket.id] && data.player && data.color && S.block.names.indexOf(data.color) > -1 && world.stunned) {
       console.log(data.player + ' has placed a bet.');
+      var blockObject = world.blocks[S.block.names.indexOf(data.color)];
+      if (S.online[socket.id].skin && (S.online[socket.id].buxio > blockObject.highestBidder[1] || blockObject.highestBidder[0] == 'None')) {
+        blockObject.highestBidder = [S.online[socket.id].name, S.online[socket.id].buxio];
+        console.log("Highest skinned bidder on " + data.color + " is " + data.player);
+        blockObject.skin = S.online[socket.id].skin;
+      }
+      //Clean up previous bets
+      if (S.online[socket.id].bettingOn) {
+        S.block.betPools[S.online[socket.id].bettingOn].splice(
+          S.block.betPools[S.online[socket.id].bettingOn].indexOf([S.online[socket.id].name, S.online[socket.id].buxio]),1
+        );
+        var blockObject = world.blocks[S.block.names.indexOf(S.online[socket.id].bettingOn)];
+        if (blockObject.highestBidder && blockObject.highestBidder[0] == S.online[socket.id].name) {
+          if (S.block.betPools[S.online[socket.id].bettingOn].length > 0) {
+            blockObject.highestBidder = 
+              S.block.betPools[S.online[socket.id].bettingOn].sort(function(a, b) {
+                  return b[1] - a[1];
+              })[0];
+            blockObject.skin = S.online[blockObject.highestBidder[0]].skin;
+          } else {
+            blockObject.highestBidder = ['None', 0];
+            blockObject.skin = 'None'
+          }
+        }
+      }
+      //add new bets
       S.online[socket.id].bettingOn = data.color;
-      S.block.betPools[data.color] += 1;
+      S.block.betPools[data.color].push([S.online[socket.id].name, S.online[socket.id].buxio]);
     }
   });
   socket.on('obstacleBought', function(data) {
@@ -441,13 +475,11 @@ io.sockets.on('connection', function(socket) {
       namenum++
     }
     console.log(S.registeredNames);
-    for (var skin in S.skins) {
-
-    }
     S.registeredNames.push(name);
     S.online[socket.id] = {
       buxio: 0,
       name: name,
+      skin: 'None',
       obstaclesOwned: {
         Freeze: 0,
         Wall: 0,
@@ -456,6 +488,15 @@ io.sockets.on('connection', function(socket) {
       },
       socket: socket
     };
+    for (var skin in S.block.skins) {
+      var length = S.block.skins[skin].length;
+      for (i = S.block.skins[skin].length-1; i >= 0; i--) {
+        if (name.indexOf(S.block.skins[skin][i])!=-1) {
+            // their name contains a skin name
+            S.online[socket.id].skin = skin;
+        }
+      }
+    }
     console.log(name + " has registered their name.");
     S.highScores.update();
     console.log(S.online);
@@ -478,12 +519,12 @@ var changeRound = function() {
   var buxioList = {};
   var betterCount = 0;
   Object.keys(S.block.betPools).forEach(function(pool) {
-    betterCount += S.block.betPools[pool];
+    betterCount += S.block.betPools[pool].length;
   });
   var payoutPool = betterCount * 10;
   var winnerPayout = Math.ceil(payoutPool/S.block.betPools[S.winner]);
   Object.keys(S.block.betPools).forEach(function(pool) {
-    S.block.betPools[pool] = 0;
+    S.block.betPools[pool] = [];
   });
   Object.keys(S.online).forEach(function(playerId) {
     if (S.online[playerId].bettingOn && S.online[playerId].bettingOn == S.winner) {
@@ -501,6 +542,7 @@ var changeRound = function() {
   world.blocks.forEach(function(block) {
     block.body.angularVelocity = 0;
     block.body.angle = 0;
+    block.skin = 'None';
     block.revive();
   });
   S.highScores.update();
