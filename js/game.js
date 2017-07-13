@@ -169,26 +169,24 @@ function Block(game,x,y,color,frame) {
     this.body.y = y;*/
     //this.body.angle = angle * (180/Math.PI);
     this.rotation = rotation;
-    if (this.skin) {
-      this.skin.x = this.x;
-      this.skin.y = this.y;
-      this.skin.rotation = this.rotation;
-    }
   }
   this.changeSkin = function(skin) {
     if (skin == 'None') {
       if (this.skin) {
         this.skin.destroy();
+        this.skin = null;
       } else {
         return;
       }
     } else if (!this.skin) {
-      this.skin = game.add.sprite(this.x, this.y, skin);
+      this.skin = this.addChild(game.add.sprite(0, 0, skin));
+      this.skin.game = game;
       this.skin.anchor.setTo(.5);
       this.skin.rotation = this.rotation;
-      this.skin.width = this.width;
-      this.skin.height = this.height;
-    } else if (skin != this.skin.key) {
+      this.skin.width = C.block.width;
+      this.skin.height = C.block.height;
+    } else if (this.skin && this.skin.key != skin) {
+      console.log(this.skin,this.skin.game);
       this.skin.loadTexture(skin);
     }
     game.world.bringToTop(this.skin);
@@ -263,10 +261,13 @@ Block.prototype.constructor = Block;
 Block.prototype.update = function() {
     //this.constrainVelocity(C.block.velocity);
 
-    if (this.skin) {
+    /*if (this.skin) {
       this.skin.height = this.height;
       this.skin.width = this.width;
-    }
+      this.skin.x = this.x;
+      this.skin.y = this.y;
+      this.skin.rotation = this.rotation;
+    }*/
     if (this.dying) {
       this.angle += 10;
       this.alpha -= .05;
