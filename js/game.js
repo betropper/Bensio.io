@@ -113,7 +113,7 @@ var C = {
       },
       "Saw": {
         source: "assets/sawbody.png",
-        scale: .25,
+        scale: 1,
         max: 2
       },
       "SawBlade": {
