@@ -85,6 +85,7 @@ var C = {
     skins: {
       "dapper": "assets/skins/dapper.png",
       "dice": "assets/skins/6die.png",
+      "rubix": "assets/skins/rubix.png",
       "kiwi": "assets/skins/kiwi.png"
     },
     names: ["red","blue","green","orange"],

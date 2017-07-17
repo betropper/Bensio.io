@@ -18,6 +18,9 @@ function getRandomInt(min, max) {
 
 var io = require('socket.io')(http,{});
 
+/*console.log([['blah',200],['no',1],['BLAH',10000],['notatall',32]].sort(function(a, b) {
+      return b[1] - a[1];
+  })[0]);*/
 //Server stuff.
 var S = {
   gameworld: {
@@ -48,6 +51,7 @@ var S = {
     skins: {
       "dapper": ["dapper","fancy","monacle"],
       "dice": ["dice","roll"],
+      "rubix": ["rubix"],
       "kiwi": ["kiwi","new zealand", "newzealand"]
     },
     betPools: {
@@ -436,7 +440,7 @@ io.sockets.on('connection', function(socket) {
       //Clean up previous bets
       if (S.online[socket.id].bettingOn /*&& S.online[socket.id].bettingOn != data.color*/) {
         S.block.betPools[S.online[socket.id].bettingOn].splice(
-          S.block.betPools[S.online[socket.id].bettingOn].indexOf([S.online[socket.id].name, S.online[socket.id].buxio]),1
+          S.block.betPools[S.online[socket.id].bettingOn].indexOf([S.online[socket.id].skin, S.online[socket.id].buxio]),1
         );
         var blockObject = world.blocks[S.block.names.indexOf(S.online[socket.id].bettingOn)];
         //if (blockObject.highestBidder && blockObject.highestBidder[0] == S.online[socket.id].skin && blockObject.highestBidder[1] == S.online[socket.id].buxio) {
@@ -499,7 +503,7 @@ io.sockets.on('connection', function(socket) {
     for (var skin in S.block.skins) {
       var length = S.block.skins[skin].length;
       for (i = S.block.skins[skin].length-1; i >= 0; i--) {
-        if (name.indexOf(S.block.skins[skin][i])!=-1) {
+        if (name.toLowerCase().indexOf(S.block.skins[skin][i])!=-1) {
             // their name contains a skin name
             S.online[socket.id].skin = skin;
         }
@@ -527,13 +531,14 @@ var changeRound = function() {
   var buxioList = {};
   var betterCount = 0;
   Object.keys(S.block.betPools).forEach(function(pool) {
-    betterCount += S.block.betPools[pool].length ;
+    betterCount += S.block.betPools[pool].length;
   });
   var payoutPool = betterCount * 10;
   var winnerPayout = Math.ceil(payoutPool/S.block.betPools[S.winner].length);
   Object.keys(S.block.betPools).forEach(function(pool) {
     S.block.betPools[pool] = [];
   });
+  console.log("Pool: " + payoutPool + " Winners each get: " + winnerPayout);
   Object.keys(S.online).forEach(function(playerId) {
     if (S.online[playerId].bettingOn && S.online[playerId].bettingOn == S.winner) {
       S.online[playerId].buxio += winnerPayout;
