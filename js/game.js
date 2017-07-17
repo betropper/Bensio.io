@@ -118,7 +118,7 @@ var C = {
       },
       "SawBlade": {
         source: "assets/sawout.png",
-        scale: .25,
+        scale: 1,
         max: 2,
         frames: 4,
         width: 165,
@@ -457,7 +457,8 @@ function Saw(game,x,y,name,frame) {
   //this.scale.setTo(.2);
   game.world.bringToTop(this);*/
   game.time.events.add(Phaser.Timer.SECOND * 2, function() {
-    game.userDisplay.bettingOn.loadTexture("SawBlade",0,false);
+    this.loadTexture("SawBlade",0,false);
+    this.scale.setTo(C.obstacle.data["SawBlade"].scale*game.bg.sprite.scale.x);
     this.animations.add('spin', [0,1,2,3,4],23,true);
     this.play('spin');
   }, this);
