@@ -117,8 +117,12 @@ var C = {
         max: 2
       },
       "SawBlade": {
-        source: "assets/sawblade.png",
-        scale: 1,
+        source: "assets/sawout.png",
+        scale: .25,
+        max: 2,
+        frames: 4,
+        width: 165,
+        height: 124
       },
       "Speaker": {
         source: "assets/speaker.png",
@@ -443,7 +447,7 @@ Speaker.prototype.update = function() {
 
 function Saw(game,x,y,name,frame) {
   Obstacle.call(this, game, x, y, name);
-  this.sawBlade = game.add.sprite(this.x,this.y,"SawBlade");
+  /*this.sawBlade = game.add.sprite(this.x,this.y,"SawBlade");
   game.add.existing(this.sawBlade);
   this.sawBlade.anchor.setTo(.5);
   this.sawBlade.filters = [game.blurX, game.blurY];
@@ -451,27 +455,32 @@ function Saw(game,x,y,name,frame) {
   this.sawBlade.x += 1.7;
   this.sawBlade.y += 1.2;
   //this.scale.setTo(.2);
-  game.world.bringToTop(this);
+  game.world.bringToTop(this);*/
+  game.time.events.add(Phaser.Timer.SECOND * 2, function() {
+    game.userDisplay.bettingOn.loadTexture("SawBlade",0,false);
+    this.animations.add('spin', [0,1,2,3,4],23,true);
+    this.play('spin');
+  }, this);
   this.clean = function() {
-    this.sawBlade.destroy();
+    //this.sawBlade.destroy();
     this.destroy();
   }
   this.syncScale = function() {
     this.scale.setTo(C.obstacle.data["Saw"].scale*game.bg.sprite.scale.x);
-    this.sawBlade.scale.setTo(C.obstacle.data["SawBlade"].scale*game.bg.sprite.scale.x);
+    //this.sawBlade.scale.setTo(C.obstacle.data["SawBlade"].scale*game.bg.sprite.scale.x);
     this.x = this.sentX*game.bg.sprite.scale.x + game.width/2;
     this.y = this.sentY*game.bg.sprite.scale.y + game.height/2;
-    this.sawBlade.x = this.x + 1.7*game.bg.sprite.scale.x;
-    this.sawBlade.y = this.y + 1.2*game.bg.sprite.scale.y;
+    //this.sawBlade.x = this.x + 1.7*game.bg.sprite.scale.x;
+    //this.sawBlade.y = this.y + 1.2*game.bg.sprite.scale.y;
   }
 }
 Saw.prototype = Object.create(Phaser.Sprite.prototype);
 Saw.prototype.constructor = Saw;
 Saw.prototype.update = function() {
-  this.sawBlade.angle += 20;
+  /*this.sawBlade.angle += 20;
   if (this.sawBlade.scale.x < C.obstacle.data["SawBlade"].scale*game.bg.sprite.scale.x) {
     this.sawBlade.scale.setTo(this.sawBlade.scale.x + .02*game.bg.sprite.scale.x);
-  }
+  }*/
 };
 
 function Freeze(game,x,y,name,frame) {
@@ -561,7 +570,11 @@ class Load {
       game.load.image(assetName, C.block.skins[assetName], C.block.width, C.block.height);
     });
     Object.keys(C.obstacle.data).forEach(function(assetName) {
-      game.load.image(assetName, C.obstacle.data[assetName].source);
+      if (!C.obstacle.data[assetName].frames) {
+        game.load.image(assetName, C.obstacle.data[assetName].source);
+      } else {
+        game.load.spritesheet(assetName, C.obstacle.data[assetName].source,C.obstacle.data[assetName].width,C.obstacle.data[assetName].height,C.obstacle.data[assetName].frames);
+      }
     });
   }
   create() {
