@@ -451,6 +451,7 @@ io.sockets.on('connection', function(socket) {
       function(e, login) {
         var payload = login.getPayload();
         var userid = payload['sub'];
+        socket.googleInfo = payload;
         console.log(payload,userid);
         if (!users[userid]) {
           if (S.online[socket.id] && S.online[socket.id].buxio) {
@@ -492,7 +493,7 @@ io.sockets.on('connection', function(socket) {
             console.log(S.block.betPools);
           } else {
             blockObject.highestBidder = ['None', 0];
-            blockObject.skin = 'None'
+            blockObject.skin = 'None';
           }
         //}
       }
@@ -537,6 +538,11 @@ io.sockets.on('connection', function(socket) {
       },
       socket: socket
     };
+    if (socket.googleInfo) {
+      var savedGoogleUser = users[socket.googleInfo["sub"]];
+      S.online[socket.id].buxio = savedGoogleUser.buxio;
+      S.online[socket.id].socket.emit("buxioChange", S.online[socket.id].buxio);
+    }
     for (var skin in S.block.skins) {
       var length = S.block.skins[skin].length;
       for (i = S.block.skins[skin].length-1; i >= 0; i--) {
@@ -579,6 +585,9 @@ var changeRound = function() {
   Object.keys(S.online).forEach(function(playerId) {
     if (S.online[playerId].bettingOn && S.online[playerId].bettingOn == S.winner) {
       S.online[playerId].buxio += winnerPayout;
+      if (S.online[playerId].socket.googleInfo) {
+        users[S.online[playerId].socket.googleInfo["sub"]].buxio += winnerPayout;
+      }
       buxioList[S.online[playerId].name] = S.online[playerId].buxio;
       console.log(S.online[playerId].name + " just won! Total Buxio:",S.online[playerId].buxio);
       S.online[playerId].socket.emit("buxioChange", S.online[playerId].buxio);
