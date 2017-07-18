@@ -48,9 +48,11 @@
       //var localGoogleProfile;
       function onSignIn(googleUser) {
         //var localGoogleProfile = googleUser;
+        var id_token = googleUser.getAuthResponse().id_token;
         var profile = googleUser.getBasicProfile();
         var signedIn = true;
-        game.socket.emit('googleSignIn', {googleProfile: googleUser});
+        game.socket.emit('googleSignIn', id_token);
+        console.log(game);
         /*console.log('ID: ' + profile.getId()); // Do not send to your backend! Use an ID token instead.
         console.log('Name: ' + profile.getName());
         console.log('Image URL: ' + profile.getImageUrl());

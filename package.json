@@ -20,6 +20,7 @@
     "phaser-input": "^1.2.6"
   },
   "dependencies": {
-    "planck-js": "~0.1.29"
+    "planck-js": "~0.1.29",
+    "google-auth-library": "~0.10.0"
   }
 }

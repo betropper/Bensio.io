@@ -2,6 +2,13 @@ var express = require('express');
 var app = express();
 var http = require('http').Server(app);
 var p2 = require('p2');
+var GoogleAuth = require('google-auth-library');
+var auth = new GoogleAuth;
+var CLIENT_ID = '1059212892170-025b6gqce44nra0o71rj2mikokrciaie.apps.googleusercontent.com';
+var client = new auth.OAuth2(CLIENT_ID, '', '');
+var fs = require('fs');
+var usersFile = ('./server/users.json');
+var users = require(usersFile);
 //var planck = require('./planck.min.js');
 
 app.get('/',function(req, res) {
@@ -434,6 +441,36 @@ io.sockets.on('connection', function(socket) {
     deadBlocks: world.deadBlocks
   });
   console.log("Sent a first message");
+  socket.on('googleSignIn', function(id_token) {
+    console.log(id_token);
+    client.verifyIdToken(
+      id_token,
+      CLIENT_ID,
+      // Or, if multiple clients access the backend:
+      //[CLIENT_ID_1, CLIENT_ID_2, CLIENT_ID_3],
+      function(e, login) {
+        var payload = login.getPayload();
+        var userid = payload['sub'];
+        console.log(payload,userid);
+        if (!users[userid]) {
+          if (S.online[socket.id] && S.online[socket.id].buxio) {
+            var userbuxio = S.online[socket.id].buxio;
+          } else {
+            var userbuxio = 0;
+          }
+          users[userid] = {
+            "email": payload.email, 
+            "buxio": 0,
+            "skins": []
+          };
+          fs.writeFile(usersFile, JSON.stringify(users,null,2), function (err) {
+            if (err) return console.log(err);
+            console.log(JSON.stringify(users));
+            console.log('writing to ' + usersFile);
+          });
+        }
+      });
+  });
   socket.on('bet', function(data) {
     if (S.online[socket.id] && data.player && data.color && S.block.names.indexOf(data.color) > -1 && world.stunned) {
       console.log(data.player + ' has placed a bet.');

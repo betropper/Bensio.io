@@ -1026,19 +1026,19 @@ function Background(currentkey) {
       return game.add.sprite(0,0,keys[ keys.length * Math.random() << 0]);
   };
   this.changeBackground = function(backgroundKey) {
-    if (!backgroundKey) {
-      this.sprite = this.randomBackground();
+    //if (!backgroundKey) {
+      //this.sprite = this.randomBackground();
       //Needs upkeep
-    } else {
+    //} else {
       this.sprite.loadTexture(backgroundKey);
-    }
+    //}
     game.world.sendToBack(this.sprite);
   }
-  if (currentkey) {
+  //if (currentkey) {
     this.sprite = game.add.sprite(0,0,currentkey);
-  } else {
-    this.changeBackground();
-  }
+  //} else {
+    //this.changeBackground();
+  //}
   //game.stage.addChild(this.sprite);
   //this.sprite.width = C.game.width;
   //this.sprite.height = C.game.height;
