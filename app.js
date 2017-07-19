@@ -361,12 +361,12 @@ world.on('postStep', function() {
       paused: world.stunned,
       highScores: S.highScores
     });
-    /*console.log(
+    console.log(
         world.blocks[0].skin,
         world.blocks[1].skin,
         world.blocks[2].skin,
         world.blocks[3].skin
-    );*/
+    );
   }
 });
 
@@ -474,12 +474,14 @@ io.sockets.on('connection', function(socket) {
   });
   socket.on('bet', function(data) {
     if (S.online[socket.id] && data.player && data.color && S.block.names.indexOf(data.color) > -1 && world.stunned) {
-      console.log(data.player + ' has placed a bet.');
+      console.log(S.online[socket.id].name + ' has placed a bet.');
       //Clean up previous bets
       if (S.online[socket.id].bettingOn /*&& S.online[socket.id].bettingOn != data.color*/) {
-        S.block.betPools[S.online[socket.id].bettingOn].splice(
-          S.block.betPools[S.online[socket.id].bettingOn].indexOf([S.online[socket.id].skin, S.online[socket.id].buxio]),1
+        console.log(S.block.betPools[S.online[socket.id].bettingOn],S.block.betPools[S.online[socket.id].bettingOn].indexOf([S.online[socket.id].name, S.online[socket.id].buxio]))
+        var blahblah = S.block.betPools[S.online[socket.id].bettingOn].splice(
+          S.block.betPools[S.online[socket.id].bettingOn].indexOf([S.online[socket.id].name, S.online[socket.id].buxio]),1
         );
+        console.log("Cut out this old stuff:",blahblah);
         var blockObject = world.blocks[S.block.names.indexOf(S.online[socket.id].bettingOn)];
         //if (blockObject.highestBidder && blockObject.highestBidder[0] == S.online[socket.id].skin && blockObject.highestBidder[1] == S.online[socket.id].buxio) {
           if (S.block.betPools[S.online[socket.id].bettingOn].length > 0) {
@@ -488,9 +490,15 @@ io.sockets.on('connection', function(socket) {
                   return b[1] - a[1];
               })[0];
               console.log(blockObject.highestBidder);
-            blockObject.skin = blockObject.highestBidder[0];
-            console.log(blockObject.skin);
-            console.log(S.block.betPools);
+            for (var skin in S.block.skins) {
+              var length = S.block.skins[skin].length;
+              for (i = S.block.skins[skin].length-1; i >= 0; i--) {
+                if (blockObject.highestBidder[0].toLowerCase().indexOf(S.block.skins[skin][i])!=-1) {
+                    // their name contains a skin name
+                    blockObject.skin = skin;
+                }
+              }
+            }
           } else {
             blockObject.highestBidder = ['None', 0];
             blockObject.skin = 'None';
@@ -501,11 +509,12 @@ io.sockets.on('connection', function(socket) {
       var blockObject = world.blocks[S.block.names.indexOf(data.color)];
       if (S.online[socket.id].skin != 'None' && (S.online[socket.id].buxio > blockObject.highestBidder[1] || blockObject.highestBidder[0] == 'None')) {
         blockObject.highestBidder = [S.online[socket.id].skin, S.online[socket.id].buxio];
-        console.log("Highest skinned bidder on " + data.color + " is " + data.player + " with a " + S.online[socket.id].skin);
+        console.log("Highest skinned bidder on " + data.color + " is " + S.online[socket.id].name + " with a " + S.online[socket.id].skin);
         blockObject.skin = S.online[socket.id].skin;
       }
       S.online[socket.id].bettingOn = data.color;
       S.block.betPools[data.color].push([S.online[socket.id].name, S.online[socket.id].buxio]);
+      console.log(S.online[socket.id].color,S.block.betPools);
     }
   });
   socket.on('obstacleBought', function(data) {
