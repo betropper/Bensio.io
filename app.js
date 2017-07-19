@@ -361,12 +361,12 @@ world.on('postStep', function() {
       paused: world.stunned,
       highScores: S.highScores
     });
-    console.log(
+    /*console.log(
         world.blocks[0].skin,
         world.blocks[1].skin,
         world.blocks[2].skin,
         world.blocks[3].skin
-    );
+    );*/
   }
 });
 
