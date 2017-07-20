@@ -440,6 +440,7 @@ io.sockets.on('connection', function(socket) {
   });
   console.log("Sent a first message");
   socket.on('googleSignIn', function(id_token) {
+    var users = require(usersFile);
     console.log(id_token);
     client.verifyIdToken(
       id_token,
@@ -566,6 +567,7 @@ io.sockets.on('connection', function(socket) {
       socket: socket
     };
     if (socket.googleInfo) {
+      var users = require(usersFile);
       var savedGoogleUser = users[socket.googleInfo["sub"]];
       S.online[socket.id].buxio = savedGoogleUser.buxio;
       S.online[socket.id].socket.emit("buxioChange", S.online[socket.id].buxio);
@@ -614,7 +616,9 @@ var changeRound = function() {
     if (S.online[playerId].bettingOn && S.online[playerId].bettingOn == S.winner) {
       S.online[playerId].buxio += winnerPayout;
       if (S.online[playerId].socket.googleInfo) {
+        var users = require(usersFile);
         users[S.online[playerId].socket.googleInfo["sub"]].buxio += winnerPayout;
+        S.online[playerId].buxio = users[S.online[playerId].socket.googleInfo["sub"]].buxio;
       }
       buxioList[S.online[playerId].name] = S.online[playerId].buxio;
       console.log(S.online[playerId].name + " just won! Total Buxio:",S.online[playerId].buxio);
