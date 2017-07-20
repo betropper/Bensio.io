@@ -188,13 +188,13 @@ function Block(game,x,y,color,frame) {
       this.skin.game = game;
       this.skin.anchor.setTo(.5);
       this.skin.rotation = this.rotation;
-      this.skin.width = this.width;
-      this.skin.height = this.height;
+      this.skin.width = this.width/this.scale.x;
+      this.skin.height = this.height/this.scale.y;
     } else if (this.skin && this.skin.key != skin) {
       console.log(this.skin,this.skin.game);
       this.skin.loadTexture(skin);
-      this.skin.width = this.width;
-      this.skin.height = this.height;
+      this.skin.width = this.width/this.scale.x;
+      this.skin.height = this.height/this.scale.y;
     }
     game.world.bringToTop(this.skin);
   }
@@ -459,7 +459,7 @@ function Saw(game,x,y,name,frame) {
   //this.scale.setTo(.2);
   game.world.bringToTop(this);*/
   game.time.events.add(Phaser.Timer.SECOND * 2, function() {
-    this.loadTexture("SawBlade",0,false);
+    this.loadTexture("SawBlade");
     this.scale.setTo(C.obstacle.data["SawBlade"].scale*game.bg.sprite.scale.x);
     this.animations.add('spin', [0,1,2,3,4],23,true);
     this.play('spin');

@@ -25,9 +25,7 @@ function getRandomInt(min, max) {
 
 var io = require('socket.io')(http,{});
 
-/*console.log([['blah',200],['no',1],['BLAH',10000],['notatall',32]].sort(function(a, b) {
-      return b[1] - a[1];
-  })[0]);*/
+//console.log([['blah',200],['no',1],['BLAH',10000],['notatall',32]].indexOf(['notatall',32]));
 //Server stuff.
 var S = {
   gameworld: {
@@ -477,10 +475,16 @@ io.sockets.on('connection', function(socket) {
       console.log(S.online[socket.id].name + ' has placed a bet.');
       //Clean up previous bets
       if (S.online[socket.id].bettingOn /*&& S.online[socket.id].bettingOn != data.color*/) {
-        console.log(S.block.betPools[S.online[socket.id].bettingOn],S.block.betPools[S.online[socket.id].bettingOn].indexOf([S.online[socket.id].name, S.online[socket.id].buxio]))
-        var blahblah = S.block.betPools[S.online[socket.id].bettingOn].splice(
+        //console.log(S.block.betPools[S.online[socket.id].bettingOn],[S.online[socket.id].name, S.online[socket.id].buxio],S.block.betPools[S.online[socket.id].bettingOn].indexOf([S.online[socket.id].name, S.online[socket.id].buxio]))
+        for (i = 0; i < S.block.betPools[S.online[socket.id].bettingOn].length; i++) {
+          if (S.block.betPools[S.online[socket.id].bettingOn][i][0] == S.online[socket.id].name && S.block.betPools[S.online[socket.id].bettingOn][i][1] == S.online[socket.id].buxio) {
+            var blahblah = S.block.betPools[S.online[socket.id].bettingOn].splice(i,1);
+            break;
+          }
+        }
+        /*var blahblah = S.block.betPools[S.online[socket.id].bettingOn].splice(
           S.block.betPools[S.online[socket.id].bettingOn].indexOf([S.online[socket.id].name, S.online[socket.id].buxio]),1
-        );
+        );*/
         console.log("Cut out this old stuff:",blahblah);
         var blockObject = world.blocks[S.block.names.indexOf(S.online[socket.id].bettingOn)];
         //if (blockObject.highestBidder && blockObject.highestBidder[0] == S.online[socket.id].skin && blockObject.highestBidder[1] == S.online[socket.id].buxio) {
@@ -616,7 +620,7 @@ var changeRound = function() {
       console.log(S.online[playerId].name + " just won! Total Buxio:",S.online[playerId].buxio);
       S.online[playerId].socket.emit("buxioChange", S.online[playerId].buxio);
     }
-    S.online[playerId].bettingOn = null;
+    delete S.online[playerId].bettingOn;
     for (var obstacle in S.online[playerId].obstaclesOwned) {
         S.online[playerId].obstaclesOwned[obstacle] = 0;
     }
