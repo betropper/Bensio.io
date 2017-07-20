@@ -188,11 +188,13 @@ function Block(game,x,y,color,frame) {
       this.skin.game = game;
       this.skin.anchor.setTo(.5);
       this.skin.rotation = this.rotation;
-      this.skin.width = C.block.width;
-      this.skin.height = C.block.height;
+      this.skin.width = this.width;
+      this.skin.height = this.height;
     } else if (this.skin && this.skin.key != skin) {
       console.log(this.skin,this.skin.game);
       this.skin.loadTexture(skin);
+      this.skin.width = this.width;
+      this.skin.height = this.height;
     }
     game.world.bringToTop(this.skin);
   }
