@@ -99,6 +99,9 @@ var C = {
       "rubix": "assets/skins/rubix.png",
       "kiwi": "assets/skins/kiwi.png"
     },
+    addons: {
+      "angel": "assets/addons/angel
+    },
     names: ["red","blue","green","orange"],
     hp: []
   },
