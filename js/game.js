@@ -69,7 +69,8 @@ var C = {
     assets: {
       "stars": "assets/stars1.png",
       "west": "assets/west2.png",
-      "sunset": "assets/sunset3.png"
+      "sunset": "assets/sunset3.png",
+      "snow": "assets/snow4.png",
     }
   },
   player: {

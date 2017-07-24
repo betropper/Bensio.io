@@ -40,7 +40,7 @@ var S = {
   online: {},
   highScores: [],
   registeredNames: [],
-  bgs: ['stars','west','sunset'],
+  bgs: ['stars','west','sunset','snow'],
   currentbg: 'stars',
   block: {
     width: 72,
