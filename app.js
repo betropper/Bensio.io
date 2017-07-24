@@ -139,10 +139,11 @@ function Saw(x,y,type,material) {
     if (!S.roundChanging) {
       saw.obstacleShape = new p2.Circle({ radius: 50});
       saw.body.damaging = true;
+      saw.body.damage = 2;
       saw.body.addShape(saw.obstacleShape);
       world.addBody(saw.body);
     }
-  }, 2000,this);
+  }, 1000,this);
   this.die = function(deathCase) {
     if (this.timeout) {
       clearTimeout(this.timeout);
@@ -379,7 +380,11 @@ world.on('beginContact', function(evt) {
   }*/
   if (bodyA.parent && bodyA.parent.hp) {
     if (bodyB.damaging) {
-      bodyA.parent.hp -= 1;
+      if (!bodyB.damage) {
+        bodyA.parent.hp -= 1;
+      } else {
+        bodyA.parent.hp -= bodyB.damage
+      }
       if (bodyA.parent.hp <= 0) {
         bodyA.parent.die();
       }
@@ -402,7 +407,11 @@ world.on('beginContact', function(evt) {
   }
   if (bodyB.parent && bodyB.parent.hp) {
     if (bodyA.damaging) {
-      bodyB.parent.hp -= 1;
+      if (!bodyA.damage) {
+        bodyB.parent.hp -= 1;
+      } else {
+        bodyB.parent.hp -= bodyA.damage
+      }
       if (bodyB.parent.hp <= 0) {
         bodyB.parent.die();
       }

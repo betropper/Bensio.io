@@ -27,6 +27,16 @@ var C = {
     height: 920
     //number: ''
   },
+  tips: [
+    "Bet on a block with less support to earn more bux if you win.",
+    "You can be hurt by your own obstacles. Place them wisely!",
+    "Having certain special words in your name will give your blocks special skins.\nTry to experiment!",
+    "Freezers stop a block in place, for better or worse.",
+    "A Speaker speeds up any block that it touches for a couple of seconds.",
+    "A block isn't hurt from running into an obstacle unless it's a Saw.",
+    "Saws take a second to activate, but deal two damage on a hit.",
+    "Sign in with your Google account to save your bux!"
+  ],
   text: {
     style: {
       align: 'center',
@@ -208,6 +218,9 @@ function Block(game,x,y,color,frame) {
         game.userDisplay.bensioTitle.betStateTween = game.add.tween(game.userDisplay.bensioTitle).to({y: game.world.centerY, alpha: 1}, 1000, Phaser.Easing.Linear.None, true)
         game.userDisplay.bensioTitle.text = "Click on a block to join its team."
         game.userDisplay.noBets.text = ""
+        game.userDisplay.tipText.tipNumber = Math.floor(Math.random() * C.tips.length);
+        game.userDisplay.tipText.text = "Tip: \n" + C.tips[game.userDisplay.tipText.tipNumber];
+        game.userDisplay.tipText.alpha = 1;
         this.inputEnabled = true;
         this.bettingEnabled = true;
         this.events.onInputUp.add(function() {
@@ -238,6 +251,7 @@ function Block(game,x,y,color,frame) {
           game.blocks.children[i].tint = 0xffffff;
         }
         game.userDisplay.bensioTitle.alpha = 0;
+        game.userDisplay.tipText.alpha = 0;
         game.userDisplay.bensioTitle.text = "bensio";
         if (game.userDisplay.bettingOn.alpha == 0) {
           game.userDisplay.noBets.alpha = 1;
@@ -458,11 +472,13 @@ function Saw(game,x,y,name,frame) {
   this.sawBlade.y += 1.2;
   //this.scale.setTo(.2);
   game.world.bringToTop(this);*/
-  game.time.events.add(Phaser.Timer.SECOND * 2, function() {
-    this.loadTexture("SawBlade");
-    this.scale.setTo(C.obstacle.data["SawBlade"].scale*game.bg.sprite.scale.x);
-    this.animations.add('spin', [0,1,2,3,4],23,true);
-    this.play('spin');
+  game.time.events.add(Phaser.Timer.SECOND, function() {
+    if (this && this.alive) {
+      this.loadTexture("SawBlade");
+      this.scale.setTo(C.obstacle.data["SawBlade"].scale*game.bg.sprite.scale.x);
+      this.animations.add('spin', [0,1,2,3,4],23,true);
+      this.play('spin');
+    }
   }, this);
   this.clean = function() {
     //this.sawBlade.destroy();
@@ -820,9 +836,11 @@ class MainMenu {
           game.blocks.children[i].winner = true;
           if (!game.blocks.children[i].victoryTween) {
             game.blocks.children[i].victoryTween = game.add.tween(game.blocks.children[i]).to({x: game.world.centerX, y: game.world.centerY}, 1000, Phaser.Easing.Linear.None, true);
-            game.userDisplay.bensioTitle.text = "Team " + game.blocks.children[i].color + " wins!";
-            game.world.bringToTop(game.userDisplay.bensioTitle);
-            game.userDisplay.bensioTitle.winStateTween = game.add.tween(game.userDisplay.bensioTitle).to({y: game.world.centerY - 150, alpha: 1}, 1000, Phaser.Easing.Linear.None, true)
+            if (game.state.current == "Play") {
+              game.userDisplay.bensioTitle.text = "Team " + game.blocks.children[i].color + " wins!";
+              game.world.bringToTop(game.userDisplay.bensioTitle);
+              game.userDisplay.bensioTitle.winStateTween = game.add.tween(game.userDisplay.bensioTitle).to({y: game.world.centerY - 150, alpha: 1}, 1000, Phaser.Easing.Linear.None, true)
+            }
           }
         }
       }
@@ -992,8 +1010,15 @@ class Play {
     game.userDisplay.bettingHP.anchor.setTo(.5);
     game.userDisplay.bettingHP.alpha = 0;
     game.userDisplay.bettingHP.resetPosition = function() {
-      this.x = game.world.centerX + 60*game.bg.sprite.scale.x;
+      this.x = game.world.centerX + 60*game.bg.sprite.scale.y;
       this.y = 60*game.bg.sprite.scale.x;
+    }
+    game.userDisplay.tipText = game.add.text(game.world.centerX,game.world.height - 100*game.bg.sprite.scale.y,"Tip: \n",C.text.scoreStyle);
+    game.userDisplay.tipText.anchor.setTo(.5);
+    game.userDisplay.tipText.alpha = 0;
+    game.userDisplay.tipText.resetPosition = function() {
+      this.x = game.world.centerX;
+      this.y = game.world.height - 100*game.bg.sprite.scale.y;
     }
     Object.keys(game.userDisplay).forEach(function(displayKey) {
       game.userDisplay[displayKey].homeX = game.userDisplay[displayKey].x;
