@@ -99,8 +99,29 @@ var C = {
       "rubix": "assets/skins/rubix.png",
       "kiwi": "assets/skins/kiwi.png"
     },
+    addonData: {
+      "angel": {
+        source: "assets/addons/angel_cube.png",
+        scale: .75,
+      },
+      "cowboy": {
+        source: "assets/addons/cowboy_hat.png",
+        scale: 1,
+      },
+      "santa": {
+        source: "assets/addons/santa_hat.png",
+        scale: 1,
+      },
+      "spaceship": {
+        source: "assets/addons/spaceship.png",
+        scale: 1
+      }
+    },
     addons: {
-      "angel": "assets/addons/angel
+      "angel": "assets/addons/angel_cube.png",
+      "cowboy": "assets/addons/cowboy_hat.png",
+      "santa": "assets/addons/santa_hat.png",
+      "spaceship": "assets/addons/spaceship.png"
     },
     names: ["red","blue","green","orange"],
     hp: []
@@ -179,6 +200,13 @@ function Block(game,x,y,color,frame) {
     body.data.velocity[0] = vx;
     body.data.velocity[1] = vy;
   };*/
+
+  /*this.addon = game.add.sprite(0, 0, color);
+  this.addon.alpha = 0;
+  this.addon.game = game;
+  this.addon.anchor.setTo(.5);
+  this.addon.rotation = this.rotation;
+  this.addChild(this.addon);*/
   this.syncBlock = function(x,y,rotation) {
     //this.x = x + C.game.width/2;
     //this.y = y + C.game.height/2;
@@ -188,8 +216,32 @@ function Block(game,x,y,color,frame) {
     this.body.y = y;*/
     //this.body.angle = angle * (180/Math.PI);
     this.rotation = rotation;
+    if (this.addon) {
+      this.addon.x = this.x;
+      this.addon.y = this.y;
+      this.addon.rotation = this.rotation;
+    }
   }
-  this.changeSkin = function(skin) {
+  this.changeSkin = function(skin,addon) {
+    //console.log("ChangeSkin Function is seeing " + addon);
+    /*if (skin == 'None') {
+      this.skin.alpha = 0;
+      this.skin.key = 'None';
+    } else if (this.skin.key != skin) {
+      console.log(skin,this.skin,this.skin.game);
+      this.skin.alpha = 1;
+      this.skin.destroy();
+      this.skin = game.add.sprite(0, 0, skin);
+      this.skin.alpha = 0;
+      this.skin.game = game;
+      this.skin.anchor.setTo(.5);
+      this.skin.rotation = this.rotation;
+      this.addChild(this.skin);
+      this.skin.width = this.width/this.scale.x;
+      this.skin.height = this.height/this.scale.y;
+    } else if (this.skin.alpha != 1) {
+      this.skin.alpha = 1;
+    }*/
     if (skin == 'None') {
       if (this.skin) {
         this.skin.destroy();
@@ -204,13 +256,37 @@ function Block(game,x,y,color,frame) {
       this.skin.rotation = this.rotation;
       this.skin.width = this.width/this.scale.x;
       this.skin.height = this.height/this.scale.y;
+      game.world.bringToTop(this.skin);
     } else if (this.skin && this.skin.key != skin) {
       console.log(this.skin,this.skin.game);
       this.skin.loadTexture(skin);
       this.skin.width = this.width/this.scale.x;
       this.skin.height = this.height/this.scale.y;
     }
-    game.world.bringToTop(this.skin);
+
+    console.log(addon);
+    if (addon == 'None') {
+      if (this.addon) {
+        this.addon.destroy();
+        this.addon = null;
+      } else {
+        return;
+      }
+    } else if (!this.addon) {
+      this.addon = game.add.sprite(this.x, this.y, addon);
+      this.addon.game = game;
+      this.addon.anchor.setTo(.5);
+      this.addon.scale.setTo(this.scale.x*C.block.addonData[addon].scale);
+      this.addon.rotation = this.rotation;
+      //this.addon.width = this.width/this.scale.x;
+      //this.addon.height = this.height/this.scale.y;
+    } else if (this.addon && this.addon.key != addon) {
+      console.log(this.addon,this.addon.game);
+      this.addon.loadTexture(addon);
+      //this.addon.width = this.width/this.scale.x;
+      //this.addon.height = this.height/this.scale.y;
+    }
+    game.world.bringToTop(this.addon);
   }
   this.enableBetting = function(state) {
     if (game.state.current == "Play") {
@@ -286,13 +362,6 @@ Block.prototype.constructor = Block;
 Block.prototype.update = function() {
     //this.constrainVelocity(C.block.velocity);
 
-    /*if (this.skin) {
-      this.skin.height = this.height;
-      this.skin.width = this.width;
-      this.skin.x = this.x;
-      this.skin.y = this.y;
-      this.skin.rotation = this.rotation;
-    }*/
     if (this.dying) {
       this.angle += 10;
       this.alpha -= .05;
@@ -592,6 +661,9 @@ class Load {
     Object.keys(C.block.skins).forEach(function(assetName) {
       game.load.image(assetName, C.block.skins[assetName], C.block.width, C.block.height);
     });
+    Object.keys(C.block.addons).forEach(function(assetName) {
+      game.load.image(assetName, C.block.addons[assetName]);
+    });
     Object.keys(C.obstacle.data).forEach(function(assetName) {
       if (!C.obstacle.data[assetName].frames) {
         game.load.image(assetName, C.obstacle.data[assetName].source);
@@ -820,9 +892,10 @@ class MainMenu {
         game.userDisplay.highScores.text = finalText;
       }
       for (var i = 0; i < game.blocks.length; i++) {
-        if (game.blocks.children[i].skin != data.skins[i]) {
-          game.blocks.children[i].changeSkin(data.skins[i]);
-        }
+        //if (game.blocks.children[i].skin.key != data.skins[i][0] || game.blocks.children[i].addon.key != data.skins[i][1]) {
+          //console.log(data.skins,data.skins[i][1]);
+          game.blocks.children[i].changeSkin(data.skins[i][0],data.skins[i][1]);
+        //}
         if (data.paused) {
           game.blocks.children[i].revive();
         }
@@ -840,6 +913,9 @@ class MainMenu {
           game.blocks.children[i].winner = true;
           if (!game.blocks.children[i].victoryTween) {
             game.blocks.children[i].victoryTween = game.add.tween(game.blocks.children[i]).to({x: game.world.centerX, y: game.world.centerY}, 1000, Phaser.Easing.Linear.None, true);
+            if (game.blocks.children[i].addon) {
+              game.blocks.children[i].addon.alpha = 0;
+            }
             if (game.state.current == "Play") {
               game.userDisplay.bensioTitle.text = "Team " + game.blocks.children[i].color + " wins!";
               game.world.bringToTop(game.userDisplay.bensioTitle);
@@ -940,6 +1016,9 @@ class MainMenu {
       });
       game.blocks.forEach(function(block) {
         block.scale.setTo(game.bg.sprite.scale.x);
+        if (block.addon) {
+          block.addon.scale.setTo(game.bg.sprite.scale.x);
+        }
       });
       Object.keys(game.userDisplay).forEach(function(displayKey) {
         if (game.userDisplay[displayKey] && game.userDisplay[displayKey].resetPosition) {

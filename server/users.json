@@ -1,12 +1,18 @@
 {
   "107561286087890606825": {
     "email": "betropper@gmail.com",
-    "buxio": 10020,
-    "skins": []
+    "buxio": 10030,
+    "skins": [],
+    "addons": [
+      "angel"
+    ]
   },
   "104233635211551553233": {
     "email": "etomtomm@gmail.com",
     "buxio": 0,
-    "skins": []
+    "skins": [],
+    "addons": [
+      "angel"
+    ]
   }
 }
