@@ -593,7 +593,9 @@ io.sockets.on('connection', function(socket) {
       var users = require(usersFile);
       var savedGoogleUser = users[socket.googleInfo["sub"]];
       S.online[socket.id].buxio = savedGoogleUser.buxio;
-      S.online[socket.id].addon = savedGoogleUser.addons[0];
+      if (savedGoogleUser.addons && savedGoogleUser.addons[0]) {
+        S.online[socket.id].addon = savedGoogleUser.addons[0];
+      }
       S.online[socket.id].socket.emit("buxioChange", S.online[socket.id].buxio);
     }
     for (var skin in S.block.skins) {

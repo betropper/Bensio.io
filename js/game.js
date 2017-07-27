@@ -264,7 +264,7 @@ function Block(game,x,y,color,frame) {
       this.skin.height = this.height/this.scale.y;
     }
 
-    console.log(addon);
+    //console.log(addon);
     if (addon == 'None') {
       if (this.addon) {
         this.addon.destroy();
@@ -832,10 +832,10 @@ class MainMenu {
   create() {
     //game.bg.sprite.filters = [];
       for (var i = 0; i < C.obstacle.offensive.length; i++) {
-        game.offensiveSpawners.create(game.width - C.obstacle.width/2, C.obstacle.height/2 + 150*game.bg.sprite.scale.y*i, C.obstacle.offensive[i]);
+        game.offensiveSpawners.create(game.width - C.obstacle.width, C.obstacle.height + 150*game.bg.sprite.scale.y*i, C.obstacle.offensive[i]);
       }
       for (var i = 0; i < C.obstacle.defensive.length; i++) {
-        game.defensiveSpawners.create(C.obstacle.width/2, C.obstacle.height/2 + 150*game.bg.sprite.scale.y*i, C.obstacle.defensive[i]);
+        game.defensiveSpawners.create(C.obstacle.width, C.obstacle.height + 150*game.bg.sprite.scale.y*i, C.obstacle.defensive[i]);
       }
       game.offensiveSpawners.forEach(function(spawner) {
         spawner.inputEnabled = false;
@@ -1005,11 +1005,11 @@ class MainMenu {
       for (var i = 0; i < game.defensiveSpawners.length; i++) {
         game.defensiveSpawners.children[i].scale.setTo(C.obstacle.data[game.defensiveSpawners.children[i].type].scale*game.bg.sprite.scale.x);
         //game.defensiveSpawners.children[i].reset(game.defensiveSpawners.children[i].width/2, game.defensiveSpawners.children[i].height/2 + game.defensiveSpawners.children[i].height*i);
-        game.defensiveSpawners.children[i].reset(C.obstacle.width/2, C.obstacle.height/2 + 150*game.bg.sprite.scale.y*i);
+        game.defensiveSpawners.children[i].reset(C.obstacle.width, C.obstacle.height + 150*game.bg.sprite.scale.y*i);
       }
       for (var i = 0; i < game.offensiveSpawners.length; i++) {
         game.offensiveSpawners.children[i].scale.setTo(C.obstacle.data[game.offensiveSpawners.children[i].type].scale*game.bg.sprite.scale.x);
-        game.offensiveSpawners.children[i].reset(game.width - C.obstacle.width/2, C.obstacle.height/2 + 150*game.bg.sprite.scale.y*i);
+        game.offensiveSpawners.children[i].reset(game.width - C.obstacle.width, C.obstacle.height + 150*game.bg.sprite.scale.y*i);
       }
       game.localObstacles.forEach(function(obstacle) {
         obstacle.syncScale();
