@@ -1,1 +1,3 @@
 Current issue: App does not run on roxnblox.com. App is instead serving up on 162.243.216.88:3000, check into server issues
+New issue. App redirects to roxnblox.com:3000. Change the port to be the default
+
