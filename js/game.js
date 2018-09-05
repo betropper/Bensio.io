@@ -30,12 +30,15 @@ var C = {
   tips: [
     "Bet on a block with less support to earn more bux if you win.",
     "You can be hurt by your own obstacles. Place them wisely!",
-    "Having certain special words in your name will give your blocks special skins.\nTry to experiment!",
+    "Having certain special words in your name will give your blocks special skins.\nTry to experiment, or look at others for an idea!",
     "Freezers stop a block in place, for better or worse.",
+    "A block with angelic wings is selected by someone who helped create Rox N Blox!",
     "A Speaker speeds up any block that it touches for a couple of seconds.",
     "A block isn't hurt from running into an obstacle unless it's a Saw.",
     "Saws take a second to activate, but deal two damage on a hit.",
-    "Sign in with your Google account to save your bux!"
+    "Sign in with your Google account to save your bux!",
+    "You can only place two Blox per game, so choose wisely!",
+    "Blox can be both harmful and helpful.\nKeep in mind your own Blox can hurt you too!"
   ],
   text: {
     style: {
